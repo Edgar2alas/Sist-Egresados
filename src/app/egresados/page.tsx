@@ -1,30 +1,36 @@
 import { getSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
-import { egresado, planEstudios } from "@/lib/schema";
-import { eq, ilike, and, or, sql } from "drizzle-orm";
+import { egresado } from "@/lib/schema";
+import { ilike, and, or, sql } from "drizzle-orm";
 import Link from "next/link";
-import { Plus, Search, Eye, Pencil, Trash2 } from "lucide-react";
+import { Plus, Search, Eye, Pencil } from "lucide-react";
 import AdminLayout from "@/components/shared/AdminLayout";
 import BuscadorEgresados from "@/components/egresados/BuscadorEgresados";
 import EliminarEgresadoBtn from "@/components/egresados/EliminarEgresadoBtn";
 import { cn, fmtDate } from "@/lib/utils";
+import { PLANES_ESTUDIO } from "@/lib/schema";
 
 interface SP extends Record<string, string | undefined> {
-  busqueda?: string; idPlan?: string;
-  anioGraduacion?: string; conEmpleo?: string; page?: string;
+  busqueda?: string;
+  plan?: string;
+  anioEgreso?: string;
+  conEmpleo?: string;
+  genero?: string;
+  page?: string;
 }
 
 async function getData(sp: SP) {
   const conds: any[] = [];
-  const b = sp.busqueda;
-  if (b) conds.push(or(
-    ilike(egresado.nombres,   `%${b}%`),
-    ilike(egresado.apellidos, `%${b}%`),
-    ilike(egresado.ci,        `%${b}%`),
+
+  if (sp.busqueda) conds.push(or(
+    ilike(egresado.nombres,   `%${sp.busqueda}%`),
+    ilike(egresado.apellidos, `%${sp.busqueda}%`),
+    ilike(egresado.ci,        `%${sp.busqueda}%`),
   ));
-  if (sp.idPlan)          conds.push(eq(egresado.idPlan, parseInt(sp.idPlan)));
-  if (sp.anioGraduacion)  conds.push(sql`EXTRACT(YEAR FROM ${egresado.fechaGraduacion}) = ${parseInt(sp.anioGraduacion)}`);
+  if (sp.plan)      conds.push(ilike(egresado.planEstudiosNombre, `%${sp.plan}%`));
+  if (sp.anioEgreso) conds.push(sql`${egresado.anioEgreso} = ${parseInt(sp.anioEgreso)}`);
+  if (sp.genero)    conds.push(sql`${egresado.genero} = ${sp.genero}`);
   if (sp.conEmpleo === "true")
     conds.push(sql`EXISTS(SELECT 1 FROM historial_laboral h WHERE h.id_egresado=${egresado.id} AND h.fecha_fin IS NULL)`);
   if (sp.conEmpleo === "false")
@@ -34,40 +40,43 @@ async function getData(sp: SP) {
   const page     = Math.max(1, parseInt(sp.page ?? "1"));
   const pageSize = 12;
 
-  const [{ total }] = await db.select({ total: sql<number>`count(*)::int` })
-    .from(egresado).where(where);
+  const [{ total }] = await db
+    .select({ total: sql<number>`count(*)::int` })
+    .from(egresado)
+    .where(where);
 
   const rows = await db.select({
-    id: egresado.id, nombres: egresado.nombres, apellidos: egresado.apellidos,
-    ci: egresado.ci, fechaGraduacion: egresado.fechaGraduacion,
-    nombrePlan: planEstudios.nombre,
+    id:                  egresado.id,
+    nombres:             egresado.nombres,
+    apellidos:           egresado.apellidos,
+    ci:                  egresado.ci,
+    anioTitulacion:      egresado.anioTitulacion,
+    planEstudiosNombre:  egresado.planEstudiosNombre,
+    modalidadTitulacion: egresado.modalidadTitulacion,
+    genero:              egresado.genero,
     tieneEmpleo: sql<boolean>`EXISTS(
       SELECT 1 FROM historial_laboral h
       WHERE h.id_egresado=${egresado.id} AND h.fecha_fin IS NULL
     )`,
   })
   .from(egresado)
-  .leftJoin(planEstudios, eq(egresado.idPlan, planEstudios.id))
   .where(where)
   .orderBy(egresado.apellidos)
-  .limit(pageSize).offset((page - 1) * pageSize);
+  .limit(pageSize)
+  .offset((page - 1) * pageSize);
 
-  const planes = await db.select({ id: planEstudios.id, nombre: planEstudios.nombre })
-    .from(planEstudios).orderBy(planEstudios.anioAprobacion);
-
-  return { rows, total, page, pageSize, totalPages: Math.ceil(total / pageSize), planes };
+  return { rows, total, page, pageSize, totalPages: Math.ceil(total / pageSize) };
 }
 
 export default async function EgresadosPage({ searchParams }: { searchParams: SP }) {
   const session = await getSession();
   if (!session || session.rol !== "admin") redirect("/login");
 
-  const { rows, total, page, totalPages, planes } = await getData(searchParams);
+  const { rows, total, page, totalPages } = await getData(searchParams);
 
   return (
     <AdminLayout correo={session.correo}>
       <div className="page">
-        {/* Header */}
         <div className="page-header">
           <div>
             <h1 className="page-title">Egresados</h1>
@@ -78,10 +87,8 @@ export default async function EgresadosPage({ searchParams }: { searchParams: SP
           </Link>
         </div>
 
-        {/* Buscador + filtros */}
-        <BuscadorEgresados planes={planes} searchParams={searchParams} />
+        <BuscadorEgresados planes={[...PLANES_ESTUDIO]} searchParams={searchParams} />
 
-        {/* Tabla */}
         {rows.length === 0 ? (
           <div className="card text-center py-16">
             <Search className="w-10 h-10 text-slate-700 mx-auto mb-3" />
@@ -96,7 +103,7 @@ export default async function EgresadosPage({ searchParams }: { searchParams: SP
                   <th>Nombres y Apellidos</th>
                   <th>CI</th>
                   <th>Plan de Estudios</th>
-                  <th>Fecha Graduación</th>
+                  <th>Año Titulación</th>
                   <th>Empleo</th>
                   <th className="text-right">Acciones</th>
                 </tr>
@@ -106,12 +113,11 @@ export default async function EgresadosPage({ searchParams }: { searchParams: SP
                   <tr key={r.id}>
                     <td>
                       <p className="text-white font-medium">{r.apellidos}, {r.nombres}</p>
+                      {r.genero && <p className="text-slate-500 text-xs">{r.genero}</p>}
                     </td>
                     <td className="font-mono text-slate-400 text-sm">{r.ci}</td>
-                    <td className="text-slate-500 text-sm max-w-[180px] truncate">
-                      {r.nombrePlan ?? "—"}
-                    </td>
-                    <td className="text-slate-400 text-sm">{fmtDate(r.fechaGraduacion)}</td>
+                    <td className="text-slate-500 text-sm">{r.planEstudiosNombre ?? "—"}</td>
+                    <td className="text-slate-400 text-sm">{r.anioTitulacion ?? "—"}</td>
                     <td>
                       <span className={cn("badge", r.tieneEmpleo ? "badge-green" : "badge-slate")}>
                         {r.tieneEmpleo ? "Empleado" : "Sin empleo"}
@@ -135,7 +141,6 @@ export default async function EgresadosPage({ searchParams }: { searchParams: SP
           </div>
         )}
 
-        {/* Paginación */}
         {totalPages > 1 && (
           <div className="flex items-center justify-between text-sm">
             <p className="text-slate-500">Página {page} de {totalPages}</p>

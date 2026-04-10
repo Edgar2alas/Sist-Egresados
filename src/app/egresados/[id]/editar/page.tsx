@@ -1,7 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { egresado, planEstudios } from "@/lib/schema";
+import { egresado } from "@/lib/schema";
 import { eq } from "drizzle-orm";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
@@ -15,13 +15,7 @@ export default async function EditarEgresadoPage({ params }: { params: { id: str
   const id = parseInt(params.id);
   if (isNaN(id)) notFound();
 
-  const [egresados, planes] = await Promise.all([
-    db.select().from(egresado).where(eq(egresado.id, id)).limit(1),
-    db.select({ id: planEstudios.id, nombre: planEstudios.nombre })
-      .from(planEstudios).orderBy(planEstudios.anioAprobacion),
-  ]);
-
-  const eg = egresados[0];
+  const [eg] = await db.select().from(egresado).where(eq(egresado.id, id)).limit(1);
   if (!eg) notFound();
 
   return (
@@ -32,14 +26,10 @@ export default async function EditarEgresadoPage({ params }: { params: { id: str
         </Link>
         <div>
           <h1 className="page-title">Editar Egresado</h1>
-          <p className="page-sub">{eg.apellidos}, {eg.nombres}</p>
+          <p className="page-sub">{eg.apellidoPaterno ?? eg.apellidos}, {eg.nombres}</p>
         </div>
         <div className="card">
-          <EgresadoForm
-            egresado={eg}
-            planes={planes}
-            redirectTo={`/egresados/${id}`}
-          />
+          <EgresadoForm egresado={eg} redirectTo={`/egresados/${id}`} />
         </div>
       </div>
     </AdminLayout>

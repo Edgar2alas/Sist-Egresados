@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
-import { egresado, historialLaboral, planEstudios } from "@/lib/schema";
-import { eq, ilike, and, or, sql } from "drizzle-orm";
+import { egresado } from "@/lib/schema";
+import { and, sql, ilike } from "drizzle-orm";
 import { getSession } from "@/lib/auth";
 import { ok, err } from "@/lib/utils";
 import * as XLSX from "xlsx";
@@ -12,15 +12,16 @@ export async function GET(req: NextRequest) {
     if (!session || session.rol !== "admin") return err("No autorizado", 403);
 
     const sp       = new URL(req.url).searchParams;
-    const anio     = sp.get("anioGraduacion");
-    const idPlan   = sp.get("idPlan");
+    const anio     = sp.get("anioEgreso");
+    const plan     = sp.get("plan");
     const empleo   = sp.get("conEmpleo");
-    const exportar = sp.get("exportar");   // "excel" | "json"
+    const genero   = sp.get("genero");
+    const exportar = sp.get("exportar");
 
-    // Construir filtros
     const conds: any[] = [];
-    if (anio)   conds.push(sql`EXTRACT(YEAR FROM ${egresado.fechaGraduacion}) = ${parseInt(anio)}`);
-    if (idPlan) conds.push(eq(egresado.idPlan, parseInt(idPlan)));
+    if (anio)   conds.push(sql`${egresado.anioEgreso} = ${parseInt(anio)}`);
+    if (plan)   conds.push(ilike(egresado.planEstudiosNombre, `%${plan}%`));
+    if (genero) conds.push(sql`${egresado.genero} = ${genero}`);
     if (empleo === "true")
       conds.push(sql`EXISTS(SELECT 1 FROM historial_laboral h WHERE h.id_egresado=${egresado.id} AND h.fecha_fin IS NULL)`);
     if (empleo === "false")
@@ -28,44 +29,54 @@ export async function GET(req: NextRequest) {
 
     const where = conds.length > 0 ? and(...conds) : undefined;
 
-    // Datos principales
     const rows = await db.select({
-      id:              egresado.id,
-      nombres:         egresado.nombres,
-      apellidos:       egresado.apellidos,
-      ci:              egresado.ci,
-      telefono:        egresado.telefono,
-      fechaGraduacion: egresado.fechaGraduacion,
-      nombrePlan:      planEstudios.nombre,
-      tieneEmpleo:     sql<boolean>`EXISTS(
+      id:                  egresado.id,
+      nombres:             egresado.nombres,
+      apellidos:           egresado.apellidos,
+      apellidoPaterno:     egresado.apellidoPaterno,
+      apellidoMaterno:     egresado.apellidoMaterno,
+      ci:                  egresado.ci,
+      celular:             egresado.celular,
+      correoElectronico:   egresado.correoElectronico,
+      genero:              egresado.genero,
+      planEstudiosNombre:  egresado.planEstudiosNombre,
+      modalidadTitulacion: egresado.modalidadTitulacion,
+      anioTitulacion:      egresado.anioTitulacion,
+      anioEgreso:          egresado.anioEgreso,
+      tieneEmpleo: sql<boolean>`EXISTS(
         SELECT 1 FROM historial_laboral h
         WHERE h.id_egresado=${egresado.id} AND h.fecha_fin IS NULL
       )`,
     })
     .from(egresado)
-    .leftJoin(planEstudios, eq(egresado.idPlan, planEstudios.id))
     .where(where)
     .orderBy(egresado.apellidos);
 
     // ── Exportar Excel ──────────────────────────────────────────────────────
     if (exportar === "excel") {
       const excelRows = rows.map(r => ({
-        "Nombres":          r.nombres,
-        "Apellidos":        r.apellidos,
-        "CI":               r.ci,
-        "Teléfono":         r.telefono ?? "",
-        "Fecha Graduación": r.fechaGraduacion,
-        "Plan de Estudios": r.nombrePlan ?? "",
-        "Tiene Empleo":     r.tieneEmpleo ? "Sí" : "No",
+        "Nombres":              r.nombres,
+        "Apellido Paterno":     r.apellidoPaterno ?? r.apellidos,
+        "Apellido Materno":     r.apellidoMaterno ?? "",
+        "CI":                   r.ci,
+        "Correo":               r.correoElectronico ?? "",
+        "Celular":              r.celular ?? "",
+        "Género":               r.genero ?? "",
+        "Plan de Estudios":     r.planEstudiosNombre ? `Plan ${r.planEstudiosNombre}` : "",
+        "Modalidad Titulación": r.modalidadTitulacion ?? "",
+        "Año Titulación":       r.anioTitulacion ?? "",
+        "Año Egreso":           r.anioEgreso ?? "",
+        "Tiene Empleo":         r.tieneEmpleo ? "Sí" : "No",
       }));
 
       const wb  = XLSX.utils.book_new();
       const ws  = XLSX.utils.json_to_sheet(excelRows);
       ws["!cols"] = [
-        {wch:20},{wch:20},{wch:12},{wch:14},{wch:16},{wch:25},{wch:12},
+        {wch:20},{wch:20},{wch:20},{wch:12},{wch:28},{wch:14},
+        {wch:12},{wch:18},{wch:20},{wch:14},{wch:12},{wch:12},
       ];
       XLSX.utils.book_append_sheet(wb, ws, "Egresados");
-      const buf  = XLSX.write(wb, { type:"buffer", bookType:"xlsx" });
+      const buf  = XLSX.write(wb, { type: "buffer", bookType: "xlsx" });
       const fecha = new Date().toISOString().split("T")[0];
       return new Response(buf, {
         headers: {
@@ -76,24 +87,35 @@ export async function GET(req: NextRequest) {
     }
 
     // ── Estadísticas para gráficos ─────────────────────────────────────────
-    const [porAnio, porPlan, empleabilidad] = await Promise.all([
+    const [porAnio, porPlan, porGenero, empleabilidad] = await Promise.all([
       db.execute(sql`
-        SELECT EXTRACT(YEAR FROM fecha_graduacion)::int AS anio, COUNT(*)::int AS cantidad
-        FROM egresado GROUP BY anio ORDER BY anio
-      `),
-      db.execute(sql`
-        SELECT p.nombre AS plan, COUNT(e.id)::int AS cantidad
-        FROM plan_estudios p LEFT JOIN egresado e ON e.id_plan = p.id
-        GROUP BY p.nombre ORDER BY cantidad DESC
+        SELECT anio_titulacion AS anio, COUNT(*)::int AS cantidad
+        FROM egresado WHERE anio_titulacion IS NOT NULL
+        GROUP BY anio_titulacion ORDER BY anio_titulacion
       `),
       db.execute(sql`
         SELECT
-          EXTRACT(YEAR FROM e.fecha_graduacion)::int AS anio,
+          COALESCE(plan_estudios_nombre, 'Sin especificar') AS plan,
+          COUNT(*)::int AS cantidad
+        FROM egresado
+        GROUP BY plan_estudios_nombre ORDER BY cantidad DESC
+      `),
+      db.execute(sql`
+        SELECT
+          COALESCE(genero::text, 'Sin especificar') AS genero,
+          COUNT(*)::int AS cantidad
+        FROM egresado
+        GROUP BY genero ORDER BY cantidad DESC
+      `),
+      db.execute(sql`
+        SELECT
+          anio_egreso AS anio,
           COUNT(DISTINCT e.id)::int AS total,
           COUNT(DISTINCT CASE WHEN h.fecha_fin IS NULL THEN e.id END)::int AS "conEmpleo"
         FROM egresado e
         LEFT JOIN historial_laboral h ON h.id_egresado = e.id
-        GROUP BY anio ORDER BY anio
+        WHERE e.anio_egreso IS NOT NULL
+        GROUP BY anio_egreso ORDER BY anio_egreso
       `),
     ]);
 
@@ -104,7 +126,11 @@ export async function GET(req: NextRequest) {
       sinEmpleo:     rows.filter(r => !r.tieneEmpleo).length,
       porAnio:       porAnio.rows,
       porPlan:       porPlan.rows,
+      porGenero:     porGenero.rows,
       empleabilidad: empleabilidad.rows,
     });
-  } catch (e) { console.error(e); return err("Error en reportes", 500); }
+  } catch (e) {
+    console.error("[reportes]", e);
+    return err("Error en reportes", 500);
+  }
 }

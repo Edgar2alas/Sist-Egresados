@@ -4,41 +4,61 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { egresadoSchema, type EgresadoInput } from "@/lib/validations";
+import { PLANES_ESTUDIO, MODALIDADES_TITULACION } from "@/lib/schema";
 import { Save, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface Props {
   egresado?: any;
-  planes:    { id: number; nombre: string }[];
   redirectTo?: string;
 }
 
-export default function EgresadoForm({ egresado: eg, planes, redirectTo }: Props) {
+export default function EgresadoForm({ egresado: eg, redirectTo }: Props) {
   const router    = useRouter();
   const isEditing = !!eg;
   const [serverError, setServerError] = useState<string | null>(null);
 
-  const { register, handleSubmit, formState: { errors, isSubmitting } } =
+  const years = Array.from({ length: new Date().getFullYear() - 1997 }, (_, i) => 1998 + i).reverse();
+
+  const { register, handleSubmit, watch, formState: { errors, isSubmitting } } =
     useForm<EgresadoInput>({
       resolver: zodResolver(egresadoSchema),
       defaultValues: eg ? {
-        nombres:         eg.nombres,
-        apellidos:       eg.apellidos,
-        ci:              eg.ci,
-        telefono:        eg.telefono ?? "",
-        direccion:       eg.direccion ?? "",
-        fechaNacimiento: eg.fechaNacimiento?.split("T")[0] ?? eg.fechaNacimiento,
-        fechaGraduacion: eg.fechaGraduacion?.split("T")[0] ?? eg.fechaGraduacion,
-        idPlan:          eg.idPlan,
+        nombres:             eg.nombres,
+        apellidos:           eg.apellidos,
+        apellidoPaterno:     eg.apellidoPaterno ?? "",
+        apellidoMaterno:     eg.apellidoMaterno ?? "",
+        ci:                  eg.ci,
+        nacionalidad:        eg.nacionalidad ?? "",
+        genero:              eg.genero ?? undefined,
+        correoElectronico:   eg.correoElectronico ?? "",
+        celular:             eg.celular ?? eg.telefono ?? "",
+        direccion:           eg.direccion ?? "",
+        tituloAcademico:     eg.tituloAcademico ?? "",
+        fechaNacimiento:     eg.fechaNacimiento?.split("T")[0] ?? eg.fechaNacimiento ?? "",
+        planEstudiosNombre:  eg.planEstudiosNombre ?? "",
+        anioIngreso:         eg.anioIngreso ?? undefined,
+        semestreIngreso:     eg.semestreIngreso ?? undefined,
+        anioEgreso:          eg.anioEgreso ?? undefined,
+        semestreEgreso:      eg.semestreEgreso ?? undefined,
+        fechaTitulacion:     eg.fechaTitulacion?.split("T")[0] ?? eg.fechaTitulacion ?? "",
+        anioTitulacion:      eg.anioTitulacion ?? undefined,
+        modalidadTitulacion: eg.modalidadTitulacion ?? undefined,
       } : undefined,
     });
 
   const onSubmit = async (d: EgresadoInput) => {
     setServerError(null);
-    const url    = isEditing ? `/api/egresados/${eg.id}` : "/api/egresados/";
+    // Construir apellidos legacy desde pat+mat
+    const apellidos = [d.apellidoPaterno, d.apellidoMaterno].filter(Boolean).join(" ") || d.apellidos;
+    const payload   = { ...d, apellidos };
+
+    const url    = isEditing ? `/api/egresados/${eg.id}` : "/api/egresados";
     const method = isEditing ? "PUT" : "POST";
     const res    = await fetch(url, {
-      method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(d),
+      method,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
     });
     const json = await res.json();
     if (!res.ok) { setServerError(json.error); return; }
@@ -47,75 +67,149 @@ export default function EgresadoForm({ egresado: eg, planes, redirectTo }: Props
     router.refresh();
   };
 
-  const inputClass = (hasErr?: boolean) => cn("field", hasErr && "field-err");
+  const f = (hasErr?: boolean) => cn("field", hasErr && "field-err");
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
       {serverError && <p className="error-box">{serverError}</p>}
 
-      {/* Datos personales */}
+      {/* ── Datos personales ── */}
       <div>
-        <p className="text-slate-400 text-xs uppercase tracking-widest font-semibold mb-4">
-          Datos Personales
-        </p>
+        <p className="text-slate-400 text-xs uppercase tracking-widest font-semibold mb-4">Datos Personales</p>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="label">Nombres <span className="text-red-400">*</span></label>
-            <input {...register("nombres")} className={inputClass(!!errors.nombres)} />
+            <input {...register("nombres")} className={f(!!errors.nombres)} />
             {errors.nombres && <p className="hint">{errors.nombres.message}</p>}
           </div>
           <div>
-            <label className="label">Apellidos <span className="text-red-400">*</span></label>
-            <input {...register("apellidos")} className={inputClass(!!errors.apellidos)} />
-            {errors.apellidos && <p className="hint">{errors.apellidos.message}</p>}
+            <label className="label">Apellido Paterno</label>
+            <input {...register("apellidoPaterno")} className="field" />
+          </div>
+          <div>
+            <label className="label">Apellido Materno</label>
+            <input {...register("apellidoMaterno")} className="field" />
           </div>
           <div>
             <label className="label">CI <span className="text-red-400">*</span></label>
-            <input {...register("ci")} className={inputClass(!!errors.ci)} />
+            <input {...register("ci")} className={f(!!errors.ci)} />
             {errors.ci && <p className="hint">{errors.ci.message}</p>}
           </div>
           <div>
-            <label className="label">Teléfono</label>
-            <input {...register("telefono")} type="tel" className="field" />
+            <label className="label">Género</label>
+            <select {...register("genero")} className="field">
+              <option value="">— Seleccionar —</option>
+              <option value="Masculino">Masculino</option>
+              <option value="Femenino">Femenino</option>
+              <option value="Otro">Otro</option>
+              <option value="Prefiero no decir">Prefiero no decir</option>
+            </select>
+          </div>
+          <div>
+            <label className="label">Fecha de Nacimiento <span className="text-red-400">*</span></label>
+            <input {...register("fechaNacimiento")} type="date" className={f(!!errors.fechaNacimiento)} />
+            {errors.fechaNacimiento && <p className="hint">{errors.fechaNacimiento.message}</p>}
+          </div>
+          <div>
+            <label className="label">Celular</label>
+            <input {...register("celular")} type="tel" className="field" placeholder="7XXXXXXX" />
+          </div>
+          <div>
+            <label className="label">Correo Electrónico</label>
+            <input {...register("correoElectronico")} type="email" className={f(!!errors.correoElectronico)} />
+            {errors.correoElectronico && <p className="hint">{errors.correoElectronico.message}</p>}
           </div>
           <div className="md:col-span-2">
             <label className="label">Dirección</label>
             <input {...register("direccion")} className="field" />
           </div>
           <div>
-            <label className="label">Fecha de Nacimiento <span className="text-red-400">*</span></label>
-            <input {...register("fechaNacimiento")} type="date"
-              className={inputClass(!!errors.fechaNacimiento)} />
-            {errors.fechaNacimiento && <p className="hint">{errors.fechaNacimiento.message}</p>}
+            <label className="label">Nacionalidad</label>
+            <input {...register("nacionalidad")} className="field" placeholder="Boliviana" />
+          </div>
+          <div>
+            <label className="label">Título Académico</label>
+            <input {...register("tituloAcademico")} className="field" placeholder="Lic. en Estadística" />
           </div>
         </div>
       </div>
 
-      {/* Datos académicos */}
+      {/* ── Datos académicos ── */}
       <div className="border-t border-slate-800 pt-6">
-        <p className="text-slate-400 text-xs uppercase tracking-widest font-semibold mb-4">
-          Datos Académicos
-        </p>
+        <p className="text-slate-400 text-xs uppercase tracking-widest font-semibold mb-4">Datos Académicos</p>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
           <div>
-            <label className="label">Fecha de Graduación <span className="text-red-400">*</span></label>
-            <input {...register("fechaGraduacion")} type="date"
-              className={inputClass(!!errors.fechaGraduacion)} />
-            {errors.fechaGraduacion && <p className="hint">{errors.fechaGraduacion.message}</p>}
-          </div>
-          <div>
-            <label className="label">Plan de Estudios <span className="text-red-400">*</span></label>
-            <select {...register("idPlan", { valueAsNumber: true })}
-              className={inputClass(!!errors.idPlan)}>
+            <label className="label">Plan de Estudios</label>
+            <select {...register("planEstudiosNombre")} className="field">
               <option value="">— Seleccionar —</option>
-              {planes.map(p => <option key={p.id} value={p.id}>{p.nombre}</option>)}
+              {PLANES_ESTUDIO.map(p => (
+                <option key={p} value={p}>Plan {p}</option>
+              ))}
             </select>
-            {errors.idPlan && <p className="hint">{errors.idPlan.message}</p>}
+          </div>
+
+          <div>
+            <label className="label">Modalidad de Titulación</label>
+            <select {...register("modalidadTitulacion")} className="field">
+              <option value="">— Seleccionar —</option>
+              {MODALIDADES_TITULACION.map(m => (
+                <option key={m} value={m}>{m}</option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="label">Año de Ingreso</label>
+            <select {...register("anioIngreso", { valueAsNumber: true })} className="field">
+              <option value="">— Seleccionar —</option>
+              {years.map(y => <option key={y} value={y}>{y}</option>)}
+            </select>
+          </div>
+
+          <div>
+            <label className="label">Semestre de Ingreso</label>
+            <select {...register("semestreIngreso", { valueAsNumber: true })} className="field">
+              <option value="">— Seleccionar —</option>
+              <option value={1}>1er semestre</option>
+              <option value={2}>2do semestre</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="label">Año de Egreso</label>
+            <select {...register("anioEgreso", { valueAsNumber: true })} className="field">
+              <option value="">— Seleccionar —</option>
+              {years.map(y => <option key={y} value={y}>{y}</option>)}
+            </select>
+          </div>
+
+          <div>
+            <label className="label">Semestre de Egreso</label>
+            <select {...register("semestreEgreso", { valueAsNumber: true })} className="field">
+              <option value="">— Seleccionar —</option>
+              <option value={1}>1er semestre</option>
+              <option value={2}>2do semestre</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="label">Fecha de Titulación</label>
+            <input {...register("fechaTitulacion")} type="date" className={f(!!errors.fechaTitulacion)} />
+            {errors.fechaTitulacion && <p className="hint">{errors.fechaTitulacion.message}</p>}
+          </div>
+
+          <div>
+            <label className="label">Año de Titulación</label>
+            <select {...register("anioTitulacion", { valueAsNumber: true })} className="field">
+              <option value="">— Seleccionar —</option>
+              {years.map(y => <option key={y} value={y}>{y}</option>)}
+            </select>
           </div>
         </div>
       </div>
 
-      {/* Acciones */}
+      {/* ── Acciones ── */}
       <div className="flex gap-3 pt-4 border-t border-slate-800">
         <button type="submit" disabled={isSubmitting} className="btn-primary">
           {isSubmitting

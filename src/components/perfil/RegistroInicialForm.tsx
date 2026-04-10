@@ -4,12 +4,11 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { egresadoSchema, type EgresadoInput } from "@/lib/validations";
+import { PLANES_ESTUDIO, MODALIDADES_TITULACION } from "@/lib/schema";
 import { Save } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-interface Props { planes: { id: number; nombre: string }[] }
-
-export default function RegistroInicialForm({ planes }: Props) {
+export default function RegistroInicialForm() {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
 
@@ -18,23 +17,20 @@ export default function RegistroInicialForm({ planes }: Props) {
 
   const onSubmit = async (d: EgresadoInput) => {
     setError(null);
+    const apellidos = [d.apellidoPaterno, d.apellidoMaterno].filter(Boolean).join(" ") || d.apellidos;
 
-    // 1. Crear egresado
     const res1  = await fetch("/api/egresados", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(d),
+      body: JSON.stringify({ ...d, apellidos }),
     });
     const json1 = await res1.json();
     if (!res1.ok) { setError(json1.error); return; }
 
-    const idEgresado = json1.data?.id;
-
-    // 2. Vincular egresado al usuario actual
-    const res2  = await fetch("/api/auth/link-egresado", {
+    const res2 = await fetch("/api/auth/link-egresado", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ idEgresado }),
+      body: JSON.stringify({ idEgresado: json1.data?.id }),
     });
     const json2 = await res2.json();
     if (!res2.ok) { setError(json2.error); return; }
@@ -44,9 +40,8 @@ export default function RegistroInicialForm({ planes }: Props) {
   };
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
       {error && <p className="error-box">{error}</p>}
-
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <label className="label">Nombres <span className="text-red-400">*</span></label>
@@ -54,22 +49,17 @@ export default function RegistroInicialForm({ planes }: Props) {
           {errors.nombres && <p className="hint">{errors.nombres.message}</p>}
         </div>
         <div>
-          <label className="label">Apellidos <span className="text-red-400">*</span></label>
-          <input {...register("apellidos")} className={cn("field", errors.apellidos && "field-err")} />
-          {errors.apellidos && <p className="hint">{errors.apellidos.message}</p>}
+          <label className="label">Apellido Paterno</label>
+          <input {...register("apellidoPaterno")} className="field" />
+        </div>
+        <div>
+          <label className="label">Apellido Materno</label>
+          <input {...register("apellidoMaterno")} className="field" />
         </div>
         <div>
           <label className="label">CI <span className="text-red-400">*</span></label>
           <input {...register("ci")} className={cn("field", errors.ci && "field-err")} />
           {errors.ci && <p className="hint">{errors.ci.message}</p>}
-        </div>
-        <div>
-          <label className="label">Teléfono</label>
-          <input {...register("telefono")} type="tel" className="field" />
-        </div>
-        <div className="md:col-span-2">
-          <label className="label">Dirección</label>
-          <input {...register("direccion")} className="field" />
         </div>
         <div>
           <label className="label">Fecha de Nacimiento <span className="text-red-400">*</span></label>
@@ -78,22 +68,17 @@ export default function RegistroInicialForm({ planes }: Props) {
           {errors.fechaNacimiento && <p className="hint">{errors.fechaNacimiento.message}</p>}
         </div>
         <div>
-          <label className="label">Fecha de Graduación <span className="text-red-400">*</span></label>
-          <input {...register("fechaGraduacion")} type="date"
-            className={cn("field", errors.fechaGraduacion && "field-err")} />
-          {errors.fechaGraduacion && <p className="hint">{errors.fechaGraduacion.message}</p>}
+          <label className="label">Celular</label>
+          <input {...register("celular")} type="tel" className="field" />
         </div>
         <div className="md:col-span-2">
-          <label className="label">Plan de Estudios <span className="text-red-400">*</span></label>
-          <select {...register("idPlan", { valueAsNumber: true })}
-            className={cn("field", errors.idPlan && "field-err")}>
-            <option value="">— Seleccionar plan —</option>
-            {planes.map(p => <option key={p.id} value={p.id}>{p.nombre}</option>)}
+          <label className="label">Plan de Estudios</label>
+          <select {...register("planEstudiosNombre")} className="field">
+            <option value="">— Seleccionar —</option>
+            {PLANES_ESTUDIO.map(p => <option key={p} value={p}>Plan {p}</option>)}
           </select>
-          {errors.idPlan && <p className="hint">{errors.idPlan.message}</p>}
         </div>
       </div>
-
       <button type="submit" disabled={isSubmitting} className="btn-primary w-full py-3">
         {isSubmitting
           ? <><span className="spinner" /> Guardando...</>
