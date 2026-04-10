@@ -13,13 +13,21 @@ export async function POST(req: NextRequest) {
     if (!parsed.success) return err(parsed.error.errors[0].message);
 
     const { correo, password } = parsed.data;
-    const [u] = await db.select().from(usuario).where(eq(usuario.correo, correo)).limit(1);
+
+    const [u] = await db
+      .select()
+      .from(usuario)
+      .where(eq(usuario.correo, correo))
+      .limit(1);
 
     if (!u)                    return err("Correo o contraseña incorrectos", 401);
     if (u.estado !== "activo") return err(`Tu cuenta está ${u.estado}.`, 403);
 
     const valid = await verifyPassword(password, u.passwordHash);
     if (!valid) return err("Correo o contraseña incorrectos", 401);
+
+    // TODO: reactivar flujo de primer_login cuando el correo esté configurado
+    // if (u.primerLogin) { ... }
 
     const token = await signToken({
       idUsuario:  u.id,
@@ -29,9 +37,9 @@ export async function POST(req: NextRequest) {
     });
     setSession(token);
 
-    return ok({ rol: u.rol, idEgresado: u.idEgresado });
+    return ok({ rol: u.rol, idEgresado: u.idEgresado, primerLogin: false });
   } catch (e) {
-    console.error(e);
+    console.error("[login]", e);
     return err("Error interno del servidor", 500);
   }
 }

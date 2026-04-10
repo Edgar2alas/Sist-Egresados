@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { loginSchema, type LoginInput } from "@/lib/validations";
@@ -25,9 +26,16 @@ export default function LoginPage() {
     const json = await res.json();
     if (!res.ok) { setError(json.error); return; }
 
-    // Redirigir según rol
-    if (json.data.rol === "admin")    router.push("/dashboard");
-    else                              router.push("/mi-perfil");
+    // Primer login: redirigir a activación de cuenta
+    if (json.data?.primerLogin) {
+      const params = new URLSearchParams({ correo: d.correo });
+      router.push(`/activar-cuenta?${params}`);
+      return;
+    }
+
+    // Login normal: redirigir según rol
+    if (json.data.rol === "admin") router.push("/dashboard");
+    else                           router.push("/mi-perfil");
     router.refresh();
   };
 
@@ -66,7 +74,13 @@ export default function LoginPage() {
 
             {/* Contraseña */}
             <div>
-              <label className="label">Contraseña</label>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="label mb-0">Contraseña</label>
+                <Link href="/recuperar-password"
+                  className="text-xs text-primary-400 hover:text-primary-300 transition-colors">
+                  ¿Olvidaste tu contraseña?
+                </Link>
+              </div>
               <div className="relative">
                 <input
                   {...register("password")}

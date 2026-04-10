@@ -12,43 +12,91 @@ const db   = drizzle(pool, { schema });
 async function main() {
   console.log("\n🌱 Iniciando seed...\n");
 
-  // Planes de estudio
-  console.log("📚 Planes de estudio...");
-  const [p1, p2, p3] = await db.insert(schema.planEstudios).values([
-    { nombre:"Plan 1994", anioAprobacion:1994, estado:"Inactivo", descripcion:"Plan original de la carrera." },
-    { nombre:"Plan 2008", anioAprobacion:2008, estado:"Inactivo", descripcion:"Segunda reforma curricular." },
-    { nombre:"Plan 2018", anioAprobacion:2018, estado:"Activo",   descripcion:"Plan vigente." },
-  ]).returning().onConflictDoNothing();
-
   // Egresados de ejemplo
   console.log("👥 Egresados...");
   const [eg1, eg2] = await db.insert(schema.egresado).values([
     {
-      nombres:"Carlos Alberto", apellidos:"Mamani Quispe", ci:"12345678",
-      telefono:"72345678", direccion:"Av. Arce 123, La Paz",
-      fechaNacimiento:"1985-03-15", fechaGraduacion:"2010-11-20",
-      idPlan: p1?.id ?? 1,
+      nombres:            "Carlos Alberto",
+      apellidos:          "Mamani Quispe",
+      apellidoPaterno:    "Mamani",
+      apellidoMaterno:    "Quispe",
+      ci:                 "12345678",
+      celular:            "72345678",
+      telefono:           "72345678",
+      direccion:          "Av. Arce 123, La Paz",
+      fechaNacimiento:    "1985-03-15",
+      fechaGraduacion:    "2010-11-20",
+      fechaTitulacion:    "2010-11-20",
+      anioTitulacion:     2010,
+      planEstudiosNombre: "2008",
+      modalidadTitulacion:"Tesis",
+      anioIngreso:        2002,
+      semestreIngreso:    1,
+      anioEgreso:         2009,
+      semestreEgreso:     2,
     },
     {
-      nombres:"María Elena", apellidos:"Flores Condori", ci:"87654321",
-      telefono:"71234567", direccion:"Calle Loayza 456, La Paz",
-      fechaNacimiento:"1990-07-22", fechaGraduacion:"2015-06-10",
-      idPlan: p3?.id ?? 3,
+      nombres:            "María Elena",
+      apellidos:          "Flores Condori",
+      apellidoPaterno:    "Flores",
+      apellidoMaterno:    "Condori",
+      ci:                 "87654321",
+      celular:            "71234567",
+      telefono:           "71234567",
+      correoElectronico:  "maria.flores@ejemplo.com",
+      direccion:          "Calle Loayza 456, La Paz",
+      fechaNacimiento:    "1990-07-22",
+      fechaGraduacion:    "2015-06-10",
+      fechaTitulacion:    "2015-06-10",
+      anioTitulacion:     2015,
+      planEstudiosNombre: "2020",
+      modalidadTitulacion:"Proyecto de grado",
+      anioIngreso:        2008,
+      semestreIngreso:    2,
+      anioEgreso:         2014,
+      semestreEgreso:     1,
     },
   ]).returning().onConflictDoNothing();
 
   // Historial laboral
   console.log("💼 Historial laboral...");
   if (eg1) await db.insert(schema.historialLaboral).values([
-    { idEgresado:eg1.id, empresa:"INE Bolivia", cargo:"Estadístico",
-      area:"Censos", fechaInicio:"2011-03-01", fechaFin:null },
+    {
+      idEgresado:  eg1.id,
+      empresa:     "INE Bolivia",
+      cargo:       "Estadístico",
+      area:        "Censos",
+      ciudad:      "La Paz",
+      sector:      "Publico",
+      tipoContrato:"Indefinido",
+      fechaInicio: "2011-03-01",
+      fechaFin:    null,
+    },
   ]).onConflictDoNothing();
 
   if (eg2) await db.insert(schema.historialLaboral).values([
-    { idEgresado:eg2.id, empresa:"Banco Central", cargo:"Analista",
-      area:"Estudios", fechaInicio:"2016-01-15", fechaFin:"2020-12-31" },
-    { idEgresado:eg2.id, empresa:"UDAPE", cargo:"Investigadora",
-      area:"Macroeconomía", fechaInicio:"2021-03-01", fechaFin:null },
+    {
+      idEgresado:  eg2.id,
+      empresa:     "Banco Central",
+      cargo:       "Analista",
+      area:        "Estudios",
+      ciudad:      "La Paz",
+      sector:      "Publico",
+      tipoContrato:"Indefinido",
+      fechaInicio: "2016-01-15",
+      fechaFin:    "2020-12-31",
+    },
+    {
+      idEgresado:  eg2.id,
+      empresa:     "UDAPE",
+      cargo:       "Investigadora",
+      area:        "Macroeconomía",
+      ciudad:      "La Paz",
+      sector:      "Publico",
+      tipoContrato:"Fijo",
+      fechaInicio: "2021-03-01",
+      fechaFin:    null,
+    },
   ]).onConflictDoNothing();
 
   // Usuarios
@@ -57,22 +105,35 @@ async function main() {
   const adminPass  = process.env.ADMIN_PASSWORD ?? "Admin1234!";
 
   await db.insert(schema.usuario).values([
-    // Admin
-    { correo:adminEmail, passwordHash:await bcrypt.hash(adminPass, 12), rol:"admin", estado:"activo" },
-    // Egresado vinculado a eg2
-    ...(eg2 ? [{
-      correo:"maria.flores@ejemplo.com",
-      passwordHash: await bcrypt.hash("Egresado1234!", 12),
-      rol: "egresado" as const, estado:"activo" as const, idEgresado: eg2.id,
-    }] : []),
+    {
+      correo:       adminEmail,
+      passwordHash: await bcrypt.hash(adminPass, 12),
+      rol:          "admin",
+      estado:       "activo",
+      primerLogin:  false,  // el admin no necesita cambiar contraseña
+    },
   ]).onConflictDoNothing();
+
+  // Usuario egresado vinculado a eg2
+  if (eg2) {
+    await db.insert(schema.usuario).values([
+      {
+        correo:       "maria.flores@ejemplo.com",
+        passwordHash: await bcrypt.hash(eg2.ci, 12), // contraseña inicial = CI
+        rol:          "egresado",
+        estado:       "activo",
+        idEgresado:   eg2.id,
+        primerLogin:  false, // false para poder probar sin flujo de activación
+      },
+    ]).onConflictDoNothing();
+  }
 
   console.log("\n✅ Seed completo!\n");
   console.log(`   👑 Admin:    ${adminEmail}`);
   console.log(`   🔑 Password: ${adminPass}`);
   if (eg2) {
     console.log(`   👤 Egresado: maria.flores@ejemplo.com`);
-    console.log(`   🔑 Password: Egresado1234!\n`);
+    console.log(`   🔑 Password: ${eg2.ci}  (CI del egresado)\n`);
   }
 }
 

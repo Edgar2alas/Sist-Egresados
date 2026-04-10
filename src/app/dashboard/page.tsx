@@ -1,25 +1,21 @@
 import { getSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
-import { egresado, historialLaboral, planEstudios, usuario } from "@/lib/schema";
 import { sql } from "drizzle-orm";
-import { Users, Briefcase, BookOpen, UserCog, GraduationCap, TrendingUp } from "lucide-react";
+import { Users, Briefcase, UserCog, GraduationCap, TrendingUp, BookOpen } from "lucide-react";
 import AdminLayout from "@/components/shared/AdminLayout";
 import Link from "next/link";
 
 async function getStats() {
   const result = await db.execute(sql`
     SELECT
-      (SELECT COUNT(*)::int FROM egresado)                                 AS "totalEgresados",
-      (SELECT COUNT(*)::int FROM historial_laboral WHERE fecha_fin IS NULL) AS "conEmpleo",
-      (SELECT COUNT(*)::int FROM plan_estudios WHERE estado='Activo')      AS "planesActivos",
-      (SELECT COUNT(*)::int FROM usuario)                                  AS "totalUsuarios"
+      (SELECT COUNT(*)::int FROM egresado)                                  AS "totalEgresados",
+      (SELECT COUNT(*)::int FROM historial_laboral WHERE fecha_fin IS NULL)  AS "conEmpleo",
+      (SELECT COUNT(*)::int FROM usuario)                                   AS "totalUsuarios",
+      (SELECT COUNT(*)::int FROM postgrado WHERE estado = 'En curso')       AS "postgradoEnCurso"
   `);
 
-  // Si usas Postgres.js o similar, las filas suelen estar en 'result' o 'result.rows'
-  // Generalmente con db.execute() en Drizzle para Postgres:
-  const stats = (result as any).rows?.[0] || (result as any)[0]; 
-  
+  const stats = (result as any).rows?.[0] || (result as any)[0];
   return stats as any;
 }
 
@@ -30,25 +26,62 @@ export default async function DashboardPage() {
   const stats = await getStats();
 
   const cards = [
-    { label:"Total Egresados",   value: stats.totalEgresados ?? 0, icon: GraduationCap, href:"/egresados",  color:"text-primary-400", bg:"bg-primary-500/10 border-primary-500/20" },
-    { label:"Con Empleo Actual", value: stats.conEmpleo ?? 0,      icon: Briefcase,     href:"/egresados?conEmpleo=true", color:"text-emerald-400", bg:"bg-emerald-500/10 border-emerald-500/20" },
-    { label:"Sin Empleo",        value: stats.totalEgresados - stats.conEmpleo, icon: Users, href:"/egresados?conEmpleo=false", color:"text-amber-400", bg:"bg-amber-500/10 border-amber-500/20" },
-    { label:"Planes Activos",    value: stats.planesActivos ?? 0,  icon: BookOpen,      href:"/reportes",   color:"text-blue-400",    bg:"bg-blue-500/10 border-blue-500/20" },
-    { label:"Usuarios",          value: stats.totalUsuarios ?? 0,  icon: UserCog,       href:"/usuarios",   color:"text-purple-400",  bg:"bg-purple-500/10 border-purple-500/20" },
+    {
+      label: "Total Egresados",
+      value: stats.totalEgresados ?? 0,
+      icon: GraduationCap,
+      href: "/egresados",
+      color: "text-primary-400",
+      bg: "bg-primary-500/10 border-primary-500/20",
+    },
+    {
+      label: "Con Empleo Actual",
+      value: stats.conEmpleo ?? 0,
+      icon: Briefcase,
+      href: "/egresados?conEmpleo=true",
+      color: "text-emerald-400",
+      bg: "bg-emerald-500/10 border-emerald-500/20",
+    },
+    {
+      label: "Sin Empleo",
+      value: (stats.totalEgresados ?? 0) - (stats.conEmpleo ?? 0),
+      icon: Users,
+      href: "/egresados?conEmpleo=false",
+      color: "text-amber-400",
+      bg: "bg-amber-500/10 border-amber-500/20",
+    },
+    {
+      label: "Usuarios",
+      value: stats.totalUsuarios ?? 0,
+      icon: UserCog,
+      href: "/usuarios",
+      color: "text-purple-400",
+      bg: "bg-purple-500/10 border-purple-500/20",
+    },
+    {
+      label: "Postgrados en curso",
+      value: stats.postgradoEnCurso ?? 0,
+      icon: BookOpen,
+      href: "/reportes",
+      color: "text-blue-400",
+      bg: "bg-blue-500/10 border-blue-500/20",
+    },
     {
       label: "Empleabilidad",
-      value: stats.totalEgresados > 0
-        ? `${Math.round((stats.conEmpleo / stats.totalEgresados) * 100)}%`
+      value: (stats.totalEgresados ?? 0) > 0
+        ? `${Math.round(((stats.conEmpleo ?? 0) / stats.totalEgresados) * 100)}%`
         : "—",
-      icon: TrendingUp, href:"/reportes",
-      color:"text-cyan-400", bg:"bg-cyan-500/10 border-cyan-500/20"
+      icon: TrendingUp,
+      href: "/reportes",
+      color: "text-cyan-400",
+      bg: "bg-cyan-500/10 border-cyan-500/20",
     },
   ];
 
   const accesos = [
-    { href:"/egresados",       label:"Gestionar Egresados", desc:"CRUD completo, búsqueda y filtros",     icon: Users },
-    { href:"/reportes",        label:"Ver Reportes",        desc:"Gráficos, tablas y exportación",         icon: TrendingUp },
-    { href:"/usuarios",        label:"Gestionar Usuarios",  desc:"Crear y administrar cuentas",            icon: UserCog },
+    { href: "/egresados", label: "Gestionar Egresados", desc: "CRUD completo, búsqueda y filtros",  icon: Users },
+    { href: "/reportes",  label: "Ver Reportes",        desc: "Gráficos, tablas y exportación",      icon: TrendingUp },
+    { href: "/usuarios",  label: "Gestionar Usuarios",  desc: "Crear y administrar cuentas",          icon: UserCog },
   ];
 
   return (

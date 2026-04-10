@@ -21,6 +21,11 @@ export async function middleware(req: NextRequest) {
     return NextResponse.next({ request: { headers } });
   }
 
+  const publicRoutes = ["/activar-cuenta", "/recuperar-password"];
+  if (publicRoutes.includes(pathname)) {
+    return NextResponse.next();
+  }
+
   // 2. Login: si ya tiene sesión redirigir al destino
   if (pathname === "/login") {
     const token = req.cookies.get("eg_token")?.value;
