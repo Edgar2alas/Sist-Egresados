@@ -1,12 +1,35 @@
 import { notFound, redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { egresado, historialLaboral } from "@/lib/schema";
+import { egresado, historialLaboral, postgrado } from "@/lib/schema";
 import { eq } from "drizzle-orm";
 import Link from "next/link";
-import { ArrowLeft, Pencil, Phone, MapPin, Calendar, Briefcase, Building2, GraduationCap } from "lucide-react";
+import {
+  ArrowLeft, Pencil, Phone, MapPin, Calendar,
+  Briefcase, Building2, GraduationCap, BookOpen, Clock,
+} from "lucide-react";
 import AdminLayout from "@/components/shared/AdminLayout";
-import { cn, fmtDate } from "@/lib/utils";
+import { cn, fmtDate, fmtGestion } from "@/lib/utils";
+
+/** Calcula meses entre dos fechas ISO. Retorna null si alguna es inválida. */
+function mesesEntre(desde: string | null, hasta: string | null): number | null {
+  if (!desde || !hasta) return null;
+  const d = new Date(desde);
+  const h = new Date(hasta);
+  if (isNaN(d.getTime()) || isNaN(h.getTime())) return null;
+  const meses = (h.getFullYear() - d.getFullYear()) * 12 + (h.getMonth() - d.getMonth());
+  return meses >= 0 ? meses : null;
+}
+
+function fmtDuracion(meses: number): string {
+  if (meses < 1)   return "menos de 1 mes";
+  if (meses < 12)  return `${meses} mes${meses !== 1 ? "es" : ""}`;
+  const anios = Math.floor(meses / 12);
+  const resto = meses % 12;
+  const partes = [`${anios} año${anios !== 1 ? "s" : ""}`];
+  if (resto > 0) partes.push(`${resto} mes${resto !== 1 ? "es" : ""}`);
+  return partes.join(" y ");
+}
 
 export default async function EgresadoDetallePage({ params }: { params: { id: string } }) {
   const session = await getSession();
@@ -18,12 +41,28 @@ export default async function EgresadoDetallePage({ params }: { params: { id: st
   const [eg] = await db.select().from(egresado).where(eq(egresado.id, id)).limit(1);
   if (!eg) notFound();
 
-  const historial = await db.select()
-    .from(historialLaboral)
-    .where(eq(historialLaboral.idEgresado, id))
-    .orderBy(historialLaboral.fechaInicio);
+  const [historial, postgrados] = await Promise.all([
+    db.select()
+      .from(historialLaboral)
+      .where(eq(historialLaboral.idEgresado, id))
+      .orderBy(historialLaboral.fechaInicio),
+    db.select()
+      .from(postgrado)
+      .where(eq(postgrado.idEgresado, id))
+      .orderBy(postgrado.anioInicio),
+  ]);
 
-  const empleoActual = historial.find(h => h.fechaFin === null);
+  const empleoActual  = historial.find(h => h.fechaFin === null);
+  const primerEmpleo  = historial.length > 0
+    ? historial.reduce((a, b) =>
+        new Date(a.fechaInicio) < new Date(b.fechaInicio) ? a : b
+      )
+    : null;
+
+  // RF-07: tiempo desde titulación hasta primer empleo
+  const mesesHastaEmpleo = primerEmpleo
+    ? mesesEntre(eg.fechaTitulacion, primerEmpleo.fechaInicio)
+    : null;
 
   return (
     <AdminLayout correo={session.correo}>
@@ -38,7 +77,10 @@ export default async function EgresadoDetallePage({ params }: { params: { id: st
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+          {/* ── Columna izquierda ── */}
           <div className="space-y-4">
+
             {/* Datos personales */}
             <div className="card text-center">
               <div className="w-20 h-20 rounded-2xl bg-primary-600/20 border-2 border-primary-500/30
@@ -48,10 +90,14 @@ export default async function EgresadoDetallePage({ params }: { params: { id: st
                 </span>
               </div>
               <h2 className="text-white font-bold text-lg">
-                {eg.apellidoPaterno ?? eg.apellidos}{eg.apellidoMaterno ? ` ${eg.apellidoMaterno}` : ""}, {eg.nombres}
+                {eg.apellidoPaterno ?? eg.apellidos}
+                {eg.apellidoMaterno ? ` ${eg.apellidoMaterno}` : ""}, {eg.nombres}
               </h2>
               <p className="text-slate-500 text-sm mt-1">CI: {eg.ci}</p>
               {eg.genero && <p className="text-slate-600 text-xs mt-0.5">{eg.genero}</p>}
+              {eg.tituloAcademico && (
+                <p className="text-slate-400 text-xs mt-1 italic">{eg.tituloAcademico}</p>
+              )}
               <div className="mt-3">
                 <span className={cn("badge", empleoActual ? "badge-green" : "badge-slate")}>
                   {empleoActual ? "Empleado actualmente" : "Sin empleo actual"}
@@ -71,7 +117,7 @@ export default async function EgresadoDetallePage({ params }: { params: { id: st
               {eg.correoElectronico && (
                 <div className="flex gap-3 text-sm">
                   <span className="text-slate-500 text-xs mt-0.5">✉</span>
-                  <span className="text-slate-300 text-sm">{eg.correoElectronico}</span>
+                  <span className="text-slate-300 text-sm break-all">{eg.correoElectronico}</span>
                 </div>
               )}
               {eg.direccion && (
@@ -104,25 +150,76 @@ export default async function EgresadoDetallePage({ params }: { params: { id: st
                   <span className="text-slate-500">Año titulación: </span>{eg.anioTitulacion}
                 </p>
               )}
+              {eg.fechaTitulacion && (
+                <p className="text-slate-300 text-sm">
+                  <span className="text-slate-500">Fecha titulación: </span>{fmtDate(eg.fechaTitulacion)}
+                </p>
+              )}
               {eg.anioIngreso && (
                 <p className="text-slate-300 text-sm">
                   <span className="text-slate-500">Ingreso: </span>
-                  {eg.anioIngreso}{eg.semestreIngreso ? `-${eg.semestreIngreso}` : ""}
+                  {fmtGestion(eg.anioIngreso, eg.semestreIngreso)}
                 </p>
               )}
               {eg.anioEgreso && (
                 <p className="text-slate-300 text-sm">
                   <span className="text-slate-500">Egreso: </span>
-                  {eg.anioEgreso}{eg.semestreEgreso ? `-${eg.semestreEgreso}` : ""}
+                  {fmtGestion(eg.anioEgreso, eg.semestreEgreso)}
                 </p>
               )}
-              <p className="text-slate-600 text-xs mt-2">
+              {/* RF-03: tiempo de permanencia */}
+              {eg.anioIngreso && eg.anioEgreso && (
+                <p className="text-slate-300 text-sm">
+                  <span className="text-slate-500">Permanencia: </span>
+                  {eg.anioEgreso - eg.anioIngreso} año(s)
+                </p>
+              )}
+              {/* RF-07: tiempo hasta primer empleo */}
+              {mesesHastaEmpleo !== null && (
+                <div className="mt-2 pt-2 border-t border-slate-800">
+                  <div className="flex items-center gap-2">
+                    <Clock className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                    <p className="text-slate-300 text-sm">
+                      <span className="text-slate-500">1er empleo tras titulación: </span>
+                      <span className="text-amber-400 font-medium">{fmtDuracion(mesesHastaEmpleo)}</span>
+                    </p>
+                  </div>
+                </div>
+              )}
+              <p className="text-slate-600 text-xs mt-2 pt-2 border-t border-slate-800/50">
                 Registrado: {fmtDate(eg.fechaRegistro?.toISOString())}
               </p>
             </div>
+
+            {/* Postgrados */}
+            {postgrados.length > 0 && (
+              <div className="card space-y-3">
+                <p className="text-slate-500 text-xs uppercase tracking-widest font-semibold">
+                  Estudios de Postgrado
+                </p>
+                {postgrados.map(p => (
+                  <div key={p.id} className="flex gap-3">
+                    <div className="w-8 h-8 bg-slate-700 rounded-lg flex items-center justify-center shrink-0">
+                      <BookOpen className="w-3.5 h-3.5 text-slate-400" />
+                    </div>
+                    <div>
+                      <p className="text-white text-sm font-medium">{p.tipo}</p>
+                      <p className="text-slate-400 text-xs">{p.institucion}</p>
+                      <p className="text-slate-600 text-xs">{p.pais} · {p.anioInicio}{p.anioFin ? `–${p.anioFin}` : ""}</p>
+                      <span className={cn("badge mt-1",
+                        p.estado === "En curso"   ? "badge-blue" :
+                        p.estado === "Finalizado" ? "badge-green" : "badge-slate"
+                      )}>
+                        {p.estado}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
-          {/* Historial laboral */}
+          {/* ── Historial laboral ── */}
           <div className="lg:col-span-2">
             <div className="card">
               <div className="flex items-center justify-between mb-5">
@@ -145,17 +242,37 @@ export default async function EgresadoDetallePage({ params }: { params: { id: st
                         ? "bg-emerald-500/5 border-emerald-500/20"
                         : "bg-slate-800/40 border-slate-700/50")}>
                       <div className="flex items-start justify-between gap-3">
-                        <div className="flex gap-3">
+                        <div className="flex gap-3 flex-1 min-w-0">
                           <div className="w-9 h-9 bg-slate-700 rounded-xl flex items-center justify-center shrink-0">
                             <Building2 className="w-4 h-4 text-slate-400" />
                           </div>
-                          <div>
+                          <div className="min-w-0">
                             <p className="text-white font-semibold text-sm">{h.cargo}</p>
                             <p className="text-slate-400 text-sm">{h.empresa}</p>
-                            <div className="flex gap-2 mt-0.5 flex-wrap">
-                              {h.area && <p className="text-slate-600 text-xs">{h.area}</p>}
-                              {h.ciudad && <p className="text-slate-600 text-xs">· {h.ciudad}</p>}
-                              {h.sector && <p className="text-slate-600 text-xs">· {h.sector}</p>}
+                            <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1">
+                              {h.area && (
+                                <span className="text-slate-500 text-xs">{h.area}</span>
+                              )}
+                              {h.ciudad && (
+                                <span className="text-slate-500 text-xs flex items-center gap-0.5">
+                                  <MapPin className="w-3 h-3" />{h.ciudad}
+                                </span>
+                              )}
+                              {h.sector && (
+                                <span className={cn(
+                                  "text-xs px-1.5 py-0.5 rounded-md font-medium",
+                                  h.sector === "Publico"
+                                    ? "bg-blue-500/10 text-blue-400"
+                                    : h.sector === "Privado"
+                                    ? "bg-purple-500/10 text-purple-400"
+                                    : "bg-slate-700 text-slate-400"
+                                )}>
+                                  {h.sector}
+                                </span>
+                              )}
+                              {h.tipoContrato && (
+                                <span className="text-slate-600 text-xs">{h.tipoContrato}</span>
+                              )}
                             </div>
                           </div>
                         </div>

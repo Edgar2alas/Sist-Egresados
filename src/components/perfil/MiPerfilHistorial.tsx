@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Building2, Pencil, Trash2, X } from "lucide-react";
+import { Building2, MapPin, Pencil, Trash2, X, Briefcase } from "lucide-react";
 import { cn, fmtDate } from "@/lib/utils";
 import HistorialForm from "./HistorialForm";
 
@@ -46,18 +46,46 @@ export default function MiPerfilHistorial({
                 : "bg-slate-800/40 border-slate-700/50"
             )}>
               <div className="flex items-start justify-between gap-3">
-                <div className="flex gap-3">
+                <div className="flex gap-3 flex-1 min-w-0">
                   <div className="w-9 h-9 bg-slate-700 rounded-xl flex items-center justify-center shrink-0">
                     <Building2 className="w-4 h-4 text-slate-400" />
                   </div>
-                  <div>
+                  <div className="min-w-0">
                     <p className="text-white font-semibold text-sm">{h.cargo}</p>
                     <p className="text-slate-400 text-sm">{h.empresa}</p>
-                    {h.area && <p className="text-slate-600 text-xs mt-0.5">{h.area}</p>}
+
+                    {/* Metadatos: área, ciudad, sector, contrato */}
+                    <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1.5">
+                      {h.area && (
+                        <span className="text-slate-500 text-xs flex items-center gap-1">
+                          <Briefcase className="w-3 h-3" /> {h.area}
+                        </span>
+                      )}
+                      {h.ciudad && (
+                        <span className="text-slate-500 text-xs flex items-center gap-1">
+                          <MapPin className="w-3 h-3" /> {h.ciudad}
+                        </span>
+                      )}
+                      {h.sector && (
+                        <span className={cn(
+                          "text-xs px-1.5 py-0.5 rounded-md font-medium",
+                          h.sector === "Publico"
+                            ? "bg-blue-500/10 text-blue-400"
+                            : h.sector === "Privado"
+                            ? "bg-purple-500/10 text-purple-400"
+                            : "bg-slate-700 text-slate-400"
+                        )}>
+                          {h.sector}
+                        </span>
+                      )}
+                      {h.tipoContrato && (
+                        <span className="text-slate-600 text-xs">{h.tipoContrato}</span>
+                      )}
+                    </div>
                   </div>
                 </div>
 
-                <div className="flex items-start gap-2">
+                <div className="flex items-start gap-2 shrink-0">
                   <div className="text-right">
                     {h.fechaFin === null
                       ? <span className="badge badge-green">Actual</span>

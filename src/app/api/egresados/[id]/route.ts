@@ -17,11 +17,7 @@ export async function GET(_: NextRequest, { params }: { params: { id: string } }
     if (session.rol === "egresado" && session.idEgresado !== id)
       return err("No autorizado", 403);
 
-    const [eg] = await db.select()
-      .from(egresado)
-      .where(eq(egresado.id, id))
-      .limit(1);
-
+    const [eg] = await db.select().from(egresado).where(eq(egresado.id, id)).limit(1);
     if (!eg) return err("Egresado no encontrado", 404);
 
     const historial = await db.select()
@@ -51,33 +47,33 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     if (!parsed.success) return err(parsed.error.errors[0].message);
 
     const d = parsed.data;
-
     const apellidosLegacy = [d.apellidoPaterno, d.apellidoMaterno]
       .filter(Boolean).join(" ") || d.apellidos;
 
     const [updated] = await db.update(egresado).set({
       nombres:             d.nombres,
       apellidos:           apellidosLegacy,
-      apellidoPaterno:     d.apellidoPaterno ?? null,
-      apellidoMaterno:     d.apellidoMaterno ?? null,
+      apellidoPaterno:     d.apellidoPaterno     ?? null,
+      apellidoMaterno:     d.apellidoMaterno     ?? null,
       ci:                  d.ci,
-      nacionalidad:        d.nacionalidad ?? null,
-      genero:              d.genero ?? null,
-      correoElectronico:   d.correoElectronico ?? null,
-      celular:             d.celular ?? null,
-      telefono:            d.celular ?? null,
-      direccion:           d.direccion ?? null,
-      tituloAcademico:     d.tituloAcademico ?? null,
+      nacionalidad:        d.nacionalidad        ?? null,
+      genero:              d.genero              ?? null,
+      correoElectronico:   d.correoElectronico   ?? null,
+      celular:             d.celular             ?? null,
+      telefono:            d.celular             ?? null,
+      direccion:           d.direccion           ?? null,
+      tituloAcademico:     d.tituloAcademico     ?? null,
       fechaNacimiento:     d.fechaNacimiento,
-      fechaGraduacion:     d.fechaTitulacion ?? d.fechaNacimiento,
-      fechaTitulacion:     d.fechaTitulacion ?? null,
-      anioTitulacion:      d.anioTitulacion ?? null,
+      planEstudiosNombre:  d.planEstudiosNombre  ?? null,
+      anioIngreso:         d.anioIngreso         ?? null,
+      anioEgreso:          d.anioEgreso          ?? null,
+      anioTitulacion:      d.anioTitulacion      ?? null,
+      promedio:            d.promedio            ?? null,
       modalidadTitulacion: d.modalidadTitulacion ?? null,
-      planEstudiosNombre:  d.planEstudiosNombre ?? null,
-      anioIngreso:         d.anioIngreso ?? null,
-      semestreIngreso:     d.semestreIngreso ?? null,
-      anioEgreso:          d.anioEgreso ?? null,
-      semestreEgreso:      d.semestreEgreso ?? null,
+      // Mantener fechaGraduacion legacy con el año de titulación si disponible
+      fechaGraduacion:     d.anioTitulacion
+        ? `${d.anioTitulacion}-01-01`
+        : d.fechaNacimiento,
     })
     .where(eq(egresado.id, id))
     .returning();
@@ -99,10 +95,7 @@ export async function DELETE(_: NextRequest, { params }: { params: { id: string 
     const id = parseInt(params.id);
     if (isNaN(id)) return err("ID inválido");
 
-    const [deleted] = await db.delete(egresado)
-      .where(eq(egresado.id, id))
-      .returning();
-
+    const [deleted] = await db.delete(egresado).where(eq(egresado.id, id)).returning();
     if (!deleted) return err("Egresado no encontrado", 404);
     return ok({ message: "Eliminado correctamente" });
   } catch (e) {

@@ -3,27 +3,39 @@ import { useRouter, usePathname } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { Search, SlidersHorizontal, X } from "lucide-react";
 
+interface SP {
+  busqueda?:   string;
+  plan?:       string;
+  anioEgreso?: string;
+  conEmpleo?:  string;
+  genero?:     string;
+  page?:       string;
+}
+
 interface Props {
-  planes: readonly string[];
-  searchParams: Record<string, string | undefined>;
+  planes:       readonly string[];
+  searchParams: SP;
 }
 
 export default function BuscadorEgresados({ planes, searchParams }: Props) {
   const router   = useRouter();
   const pathname = usePathname();
-  const years    = Array.from({ length: new Date().getFullYear() - 1997 }, (_, i) => 1998 + i).reverse();
+  const years    = Array.from(
+    { length: new Date().getFullYear() - 1997 },
+    (_, i) => 1998 + i
+  ).reverse();
 
-  const { register, handleSubmit, reset } = useForm({
+  const { register, handleSubmit, reset } = useForm<SP>({
     defaultValues: {
-      busqueda:  searchParams.busqueda  ?? "",
-      plan:      searchParams.plan      ?? "",
+      busqueda:   searchParams.busqueda   ?? "",
+      plan:       searchParams.plan       ?? "",
       anioEgreso: searchParams.anioEgreso ?? "",
-      conEmpleo: searchParams.conEmpleo ?? "",
-      genero:    searchParams.genero    ?? "",
+      conEmpleo:  searchParams.conEmpleo  ?? "",
+      genero:     searchParams.genero     ?? "",
     },
   });
 
-  const onSubmit = (d: any) => {
+  const onSubmit = (d: SP) => {
     const p = new URLSearchParams();
     Object.entries(d).forEach(([k, v]) => { if (v) p.set(k, v as string); });
     router.push(`${pathname}?${p}`);
@@ -33,6 +45,7 @@ export default function BuscadorEgresados({ planes, searchParams }: Props) {
     reset({ busqueda: "", plan: "", anioEgreso: "", conEmpleo: "", genero: "" });
     router.push(pathname);
   };
+
   const hasFilters = Object.values(searchParams).some(Boolean);
 
   return (

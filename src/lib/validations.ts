@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { PLANES_ESTUDIO, MODALIDADES_TITULACION } from "@/lib/schema";
+import { MODALIDADES_TITULACION } from "@/lib/schema";
 
 // ── Auth ──────────────────────────────────────────────────────────────────────
 export const loginSchema = z.object({
@@ -9,9 +9,9 @@ export const loginSchema = z.object({
 
 // ── Egresado ──────────────────────────────────────────────────────────────────
 export const egresadoSchema = z.object({
-  // Datos personales RF-02
+  // RF-02: Datos personales
   nombres:           z.string().min(2, "Requerido").max(100),
-  apellidos:         z.string().min(2, "Requerido").max(100),   // legacy, se calcula desde pat+mat
+  apellidos:         z.string().min(2, "Requerido").max(100),
   apellidoPaterno:   z.string().max(100).optional().nullable(),
   apellidoMaterno:   z.string().max(100).optional().nullable(),
   ci:                z.string().min(4, "CI inválido").max(20),
@@ -23,39 +23,36 @@ export const egresadoSchema = z.object({
   tituloAcademico:   z.string().max(150).optional().nullable(),
   fechaNacimiento:   z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Fecha inválida"),
 
-  // Plan de estudios — texto libre con lista sugerida
+  // Plan de estudios
   planEstudiosNombre: z.string().max(50).optional().nullable(),
 
-  // Datos académicos RF-03
-  anioIngreso:     z.number().int().min(1998).max(new Date().getFullYear()).optional().nullable(),
-  semestreIngreso: z.number().int().min(1).max(2).optional().nullable(),
-  anioEgreso:      z.number().int().min(1998).max(new Date().getFullYear() + 1).optional().nullable(),
-  semestreEgreso:  z.number().int().min(1).max(2).optional().nullable(),
+  // RF-03: Datos académicos — solo año (sin semestres en el form)
+  anioIngreso:    z.number().int().min(1998).max(new Date().getFullYear()).optional().nullable(),
+  anioEgreso:     z.number().int().min(1998).max(new Date().getFullYear() + 1).optional().nullable(),
+  anioTitulacion: z.number().int().min(1998).max(new Date().getFullYear() + 1).optional().nullable(),
 
-  // Titulación
-  fechaTitulacion:     z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Fecha inválida").optional().nullable(),
-  anioTitulacion:      z.number().int().min(1998).max(new Date().getFullYear() + 1).optional().nullable(),
+  // RF-03: Promedio de egreso
+  promedio: z.number().min(0).max(100).optional().nullable(),
+
+  // RF-03: Modalidad
   modalidadTitulacion: z.enum([
-    "Tesis",
-    "Proyecto de grado",
-    "Trabajo dirigido",
-    "Excelencia",
+    "Tesis", "Proyecto de grado", "Trabajo dirigido", "Excelencia",
   ]).optional().nullable(),
 }).refine(
-  d => {
-    if (!d.fechaTitulacion) return true;
-    return new Date(d.fechaTitulacion) > new Date(d.fechaNacimiento);
-  },
-  { message: "La fecha de titulación debe ser posterior a la de nacimiento", path: ["fechaTitulacion"] }
-).refine(
   d => {
     if (!d.anioEgreso || !d.anioIngreso) return true;
     return d.anioEgreso >= d.anioIngreso;
   },
   { message: "El año de egreso no puede ser anterior al de ingreso", path: ["anioEgreso"] }
+).refine(
+  d => {
+    if (!d.anioTitulacion || !d.anioEgreso) return true;
+    return d.anioTitulacion >= d.anioEgreso;
+  },
+  { message: "El año de titulación no puede ser anterior al de egreso", path: ["anioTitulacion"] }
 );
 
-// ── Historial laboral ─────────────────────────────────────────────────────────
+// ── Historial laboral (RF-06) ─────────────────────────────────────────────────
 export const historialSchema = z.object({
   idEgresado:         z.number().int().positive(),
   empresa:            z.string().min(2, "Requerido").max(150),
@@ -76,7 +73,7 @@ export const historialSchema = z.object({
   { message: "La fecha fin debe ser posterior a la de inicio", path: ["fechaFin"] }
 );
 
-// ── Postgrado ─────────────────────────────────────────────────────────────────
+// ── Postgrado (RF-08) ─────────────────────────────────────────────────────────
 export const postgradoSchema = z.object({
   idEgresado:  z.number().int().positive(),
   tipo:        z.enum(["Diplomado", "Especialidad", "Maestria", "Doctorado", "Postdoctorado", "Otro"]),
@@ -95,12 +92,12 @@ export const postgradoSchema = z.object({
 
 // ── Sugerencias ───────────────────────────────────────────────────────────────
 export const sugerenciaSchema = z.object({
-  tipo:       z.enum([
+  tipo:      z.enum([
     "Sugerencia general",
     "Sugerencia para el sistema",
     "Especializacion recomendada",
   ]).default("Sugerencia general"),
-  mensaje:   z.string().min(10, "El mensaje debe tener al menos 10 caracteres").max(2000),
+  mensaje:   z.string().min(10, "Mínimo 10 caracteres").max(2000),
   esAnonima: z.boolean().default(false),
 });
 
@@ -123,28 +120,6 @@ export const usuarioEditSchema = z.object({
   nuevaPassword: z.string().min(8).optional().or(z.literal("")),
 });
 
-// ── Importación Excel (para subida masiva) ────────────────────────────────────
-// Esquema de cada fila del Excel de Google Forms
-export const excelRowSchema = z.object({
-  nombres:             z.string().min(1),
-  apellidoPaterno:     z.string().optional(),
-  apellidoMaterno:     z.string().optional(),
-  ci:                  z.string().min(4),
-  correoElectronico:   z.string().email().optional(),
-  celular:             z.string().optional(),
-  fechaNacimiento:     z.string().optional(),
-  planEstudiosNombre:  z.string().optional(),
-  anioIngreso:         z.number().optional(),
-  semestreIngreso:     z.number().optional(),
-  anioEgreso:          z.number().optional(),
-  semestreEgreso:      z.number().optional(),
-  fechaTitulacion:     z.string().optional(),
-  anioTitulacion:      z.number().optional(),
-  modalidadTitulacion: z.enum(["Tesis", "Proyecto de grado", "Trabajo dirigido", "Excelencia"]).optional(),
-  genero:              z.enum(["Masculino", "Femenino", "Otro", "Prefiero no decir"]).optional(),
-  nacionalidad:        z.string().optional(),
-});
-
 // ── Tipos exportados ──────────────────────────────────────────────────────────
 export type LoginInput       = z.infer<typeof loginSchema>;
 export type EgresadoInput    = z.infer<typeof egresadoSchema>;
@@ -153,4 +128,3 @@ export type PostgradoInput   = z.infer<typeof postgradoSchema>;
 export type SugerenciaInput  = z.infer<typeof sugerenciaSchema>;
 export type UsuarioInput     = z.infer<typeof usuarioSchema>;
 export type UsuarioEditInput = z.infer<typeof usuarioEditSchema>;
-export type ExcelRowInput    = z.infer<typeof excelRowSchema>;

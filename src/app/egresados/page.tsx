@@ -11,13 +11,13 @@ import EliminarEgresadoBtn from "@/components/egresados/EliminarEgresadoBtn";
 import { cn, fmtDate } from "@/lib/utils";
 import { PLANES_ESTUDIO } from "@/lib/schema";
 
-interface SP extends Record<string, string | undefined> {
-  busqueda?: string;
-  plan?: string;
+interface SP {
+  busqueda?:  string;
+  plan?:      string;
   anioEgreso?: string;
   conEmpleo?: string;
-  genero?: string;
-  page?: string;
+  genero?:    string;
+  page?:      string;
 }
 
 async function getData(sp: SP) {
@@ -28,9 +28,9 @@ async function getData(sp: SP) {
     ilike(egresado.apellidos, `%${sp.busqueda}%`),
     ilike(egresado.ci,        `%${sp.busqueda}%`),
   ));
-  if (sp.plan)      conds.push(ilike(egresado.planEstudiosNombre, `%${sp.plan}%`));
+  if (sp.plan)       conds.push(ilike(egresado.planEstudiosNombre, `%${sp.plan}%`));
   if (sp.anioEgreso) conds.push(sql`${egresado.anioEgreso} = ${parseInt(sp.anioEgreso)}`);
-  if (sp.genero)    conds.push(sql`${egresado.genero} = ${sp.genero}`);
+  if (sp.genero)     conds.push(sql`${egresado.genero} = ${sp.genero}`);
   if (sp.conEmpleo === "true")
     conds.push(sql`EXISTS(SELECT 1 FROM historial_laboral h WHERE h.id_egresado=${egresado.id} AND h.fecha_fin IS NULL)`);
   if (sp.conEmpleo === "false")
@@ -49,6 +49,8 @@ async function getData(sp: SP) {
     id:                  egresado.id,
     nombres:             egresado.nombres,
     apellidos:           egresado.apellidos,
+    apellidoPaterno:     egresado.apellidoPaterno,
+    apellidoMaterno:     egresado.apellidoMaterno,
     ci:                  egresado.ci,
     anioTitulacion:      egresado.anioTitulacion,
     planEstudiosNombre:  egresado.planEstudiosNombre,
@@ -68,7 +70,11 @@ async function getData(sp: SP) {
   return { rows, total, page, pageSize, totalPages: Math.ceil(total / pageSize) };
 }
 
-export default async function EgresadosPage({ searchParams }: { searchParams: SP }) {
+export default async function EgresadosPage({
+  searchParams,
+}: {
+  searchParams: SP;
+}) {
   const session = await getSession();
   if (!session || session.rol !== "admin") redirect("/login");
 
@@ -112,11 +118,16 @@ export default async function EgresadosPage({ searchParams }: { searchParams: SP
                 {rows.map(r => (
                   <tr key={r.id}>
                     <td>
-                      <p className="text-white font-medium">{r.apellidos}, {r.nombres}</p>
+                      <p className="text-white font-medium">
+                        {r.apellidoPaterno ?? r.apellidos}
+                        {r.apellidoMaterno ? ` ${r.apellidoMaterno}` : ""}, {r.nombres}
+                      </p>
                       {r.genero && <p className="text-slate-500 text-xs">{r.genero}</p>}
                     </td>
                     <td className="font-mono text-slate-400 text-sm">{r.ci}</td>
-                    <td className="text-slate-500 text-sm">{r.planEstudiosNombre ?? "—"}</td>
+                    <td className="text-slate-500 text-sm">
+                      {r.planEstudiosNombre ? `Plan ${r.planEstudiosNombre}` : "—"}
+                    </td>
                     <td className="text-slate-400 text-sm">{r.anioTitulacion ?? "—"}</td>
                     <td>
                       <span className={cn("badge", r.tieneEmpleo ? "badge-green" : "badge-slate")}>
@@ -146,11 +157,13 @@ export default async function EgresadosPage({ searchParams }: { searchParams: SP
             <p className="text-slate-500">Página {page} de {totalPages}</p>
             <div className="flex gap-2">
               {page > 1 && (
-                <Link href={`?${new URLSearchParams({ ...searchParams, page: String(page - 1) })}`}
+                <Link
+                  href={`?${new URLSearchParams({ ...searchParams, page: String(page - 1) })}`}
                   className="btn-slate btn-xs">← Anterior</Link>
               )}
               {page < totalPages && (
-                <Link href={`?${new URLSearchParams({ ...searchParams, page: String(page + 1) })}`}
+                <Link
+                  href={`?${new URLSearchParams({ ...searchParams, page: String(page + 1) })}`}
                   className="btn-slate btn-xs">Siguiente →</Link>
               )}
             </div>

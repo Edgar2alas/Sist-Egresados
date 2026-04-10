@@ -9,7 +9,7 @@ import { Save, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface Props {
-  egresado?: any;
+  egresado?:   any;
   redirectTo?: string;
 }
 
@@ -18,38 +18,38 @@ export default function EgresadoForm({ egresado: eg, redirectTo }: Props) {
   const isEditing = !!eg;
   const [serverError, setServerError] = useState<string | null>(null);
 
-  const years = Array.from({ length: new Date().getFullYear() - 1997 }, (_, i) => 1998 + i).reverse();
+  const years = Array.from(
+    { length: new Date().getFullYear() - 1997 },
+    (_, i) => 1998 + i
+  ).reverse();
 
-  const { register, handleSubmit, watch, formState: { errors, isSubmitting } } =
+  const { register, handleSubmit, formState: { errors, isSubmitting } } =
     useForm<EgresadoInput>({
       resolver: zodResolver(egresadoSchema),
       defaultValues: eg ? {
         nombres:             eg.nombres,
         apellidos:           eg.apellidos,
-        apellidoPaterno:     eg.apellidoPaterno ?? "",
-        apellidoMaterno:     eg.apellidoMaterno ?? "",
+        apellidoPaterno:     eg.apellidoPaterno    ?? "",
+        apellidoMaterno:     eg.apellidoMaterno    ?? "",
         ci:                  eg.ci,
-        nacionalidad:        eg.nacionalidad ?? "",
-        genero:              eg.genero ?? undefined,
-        correoElectronico:   eg.correoElectronico ?? "",
+        nacionalidad:        eg.nacionalidad       ?? "",
+        genero:              eg.genero             ?? undefined,
+        correoElectronico:   eg.correoElectronico  ?? "",
         celular:             eg.celular ?? eg.telefono ?? "",
-        direccion:           eg.direccion ?? "",
-        tituloAcademico:     eg.tituloAcademico ?? "",
+        direccion:           eg.direccion          ?? "",
+        tituloAcademico:     eg.tituloAcademico    ?? "",
         fechaNacimiento:     eg.fechaNacimiento?.split("T")[0] ?? eg.fechaNacimiento ?? "",
         planEstudiosNombre:  eg.planEstudiosNombre ?? "",
-        anioIngreso:         eg.anioIngreso ?? undefined,
-        semestreIngreso:     eg.semestreIngreso ?? undefined,
-        anioEgreso:          eg.anioEgreso ?? undefined,
-        semestreEgreso:      eg.semestreEgreso ?? undefined,
-        fechaTitulacion:     eg.fechaTitulacion?.split("T")[0] ?? eg.fechaTitulacion ?? "",
-        anioTitulacion:      eg.anioTitulacion ?? undefined,
+        anioIngreso:         eg.anioIngreso        ?? undefined,
+        anioEgreso:          eg.anioEgreso         ?? undefined,
+        anioTitulacion:      eg.anioTitulacion     ?? undefined,
+        promedio:            eg.promedio ? parseFloat(eg.promedio) : undefined,
         modalidadTitulacion: eg.modalidadTitulacion ?? undefined,
       } : undefined,
     });
 
   const onSubmit = async (d: EgresadoInput) => {
     setServerError(null);
-    // Construir apellidos legacy desde pat+mat
     const apellidos = [d.apellidoPaterno, d.apellidoMaterno].filter(Boolean).join(" ") || d.apellidos;
     const payload   = { ...d, apellidos };
 
@@ -73,28 +73,41 @@ export default function EgresadoForm({ egresado: eg, redirectTo }: Props) {
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
       {serverError && <p className="error-box">{serverError}</p>}
 
-      {/* ── Datos personales ── */}
-      <div>
-        <p className="text-slate-400 text-xs uppercase tracking-widest font-semibold mb-4">Datos Personales</p>
+      {/* ── Datos Personales ── */}
+      <section>
+        <p className="text-slate-400 text-xs uppercase tracking-widest font-semibold mb-4">
+          Datos Personales
+        </p>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
           <div>
             <label className="label">Nombres <span className="text-red-400">*</span></label>
             <input {...register("nombres")} className={f(!!errors.nombres)} />
             {errors.nombres && <p className="hint">{errors.nombres.message}</p>}
           </div>
-          <div>
-            <label className="label">Apellido Paterno</label>
-            <input {...register("apellidoPaterno")} className="field" />
-          </div>
-          <div>
-            <label className="label">Apellido Materno</label>
-            <input {...register("apellidoMaterno")} className="field" />
-          </div>
+
           <div>
             <label className="label">CI <span className="text-red-400">*</span></label>
             <input {...register("ci")} className={f(!!errors.ci)} />
             {errors.ci && <p className="hint">{errors.ci.message}</p>}
           </div>
+
+          <div>
+            <label className="label">Apellido Paterno</label>
+            <input {...register("apellidoPaterno")} className="field" />
+          </div>
+
+          <div>
+            <label className="label">Apellido Materno</label>
+            <input {...register("apellidoMaterno")} className="field" />
+          </div>
+
+          <div>
+            <label className="label">Fecha de Nacimiento <span className="text-red-400">*</span></label>
+            <input {...register("fechaNacimiento")} type="date" className={f(!!errors.fechaNacimiento)} />
+            {errors.fechaNacimiento && <p className="hint">{errors.fechaNacimiento.message}</p>}
+          </div>
+
           <div>
             <label className="label">Género</label>
             <select {...register("genero")} className="field">
@@ -105,38 +118,48 @@ export default function EgresadoForm({ egresado: eg, redirectTo }: Props) {
               <option value="Prefiero no decir">Prefiero no decir</option>
             </select>
           </div>
-          <div>
-            <label className="label">Fecha de Nacimiento <span className="text-red-400">*</span></label>
-            <input {...register("fechaNacimiento")} type="date" className={f(!!errors.fechaNacimiento)} />
-            {errors.fechaNacimiento && <p className="hint">{errors.fechaNacimiento.message}</p>}
-          </div>
+
           <div>
             <label className="label">Celular</label>
-            <input {...register("celular")} type="tel" className="field" placeholder="7XXXXXXX" />
+            <input {...register("celular")} type="tel" placeholder="7XXXXXXX" className="field" />
           </div>
+
           <div>
             <label className="label">Correo Electrónico</label>
             <input {...register("correoElectronico")} type="email" className={f(!!errors.correoElectronico)} />
             {errors.correoElectronico && <p className="hint">{errors.correoElectronico.message}</p>}
           </div>
+
           <div className="md:col-span-2">
             <label className="label">Dirección</label>
             <input {...register("direccion")} className="field" />
           </div>
+
           <div>
             <label className="label">Nacionalidad</label>
             <input {...register("nacionalidad")} className="field" placeholder="Boliviana" />
           </div>
-          <div>
-            <label className="label">Título Académico</label>
-            <input {...register("tituloAcademico")} className="field" placeholder="Lic. en Estadística" />
-          </div>
-        </div>
-      </div>
 
-      {/* ── Datos académicos ── */}
-      <div className="border-t border-slate-800 pt-6">
-        <p className="text-slate-400 text-xs uppercase tracking-widest font-semibold mb-4">Datos Académicos</p>
+          <div>
+            <label className="label">Último Título Académico</label>
+            <input
+              {...register("tituloAcademico")}
+              className="field"
+              placeholder="Ej: Lic. en Estadística"
+            />
+            <p className="text-slate-600 text-xs mt-1">
+              Se actualiza automáticamente si registra un postgrado
+            </p>
+          </div>
+
+        </div>
+      </section>
+
+      {/* ── Datos Académicos ── */}
+      <section className="border-t border-slate-800 pt-6">
+        <p className="text-slate-400 text-xs uppercase tracking-widest font-semibold mb-4">
+          Datos Académicos
+        </p>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 
           <div>
@@ -168,46 +191,39 @@ export default function EgresadoForm({ egresado: eg, redirectTo }: Props) {
           </div>
 
           <div>
-            <label className="label">Semestre de Ingreso</label>
-            <select {...register("semestreIngreso", { valueAsNumber: true })} className="field">
-              <option value="">— Seleccionar —</option>
-              <option value={1}>1er semestre</option>
-              <option value={2}>2do semestre</option>
-            </select>
-          </div>
-
-          <div>
             <label className="label">Año de Egreso</label>
-            <select {...register("anioEgreso", { valueAsNumber: true })} className="field">
+            <select {...register("anioEgreso", { valueAsNumber: true })} className={f(!!errors.anioEgreso)}>
               <option value="">— Seleccionar —</option>
               {years.map(y => <option key={y} value={y}>{y}</option>)}
             </select>
-          </div>
-
-          <div>
-            <label className="label">Semestre de Egreso</label>
-            <select {...register("semestreEgreso", { valueAsNumber: true })} className="field">
-              <option value="">— Seleccionar —</option>
-              <option value={1}>1er semestre</option>
-              <option value={2}>2do semestre</option>
-            </select>
-          </div>
-
-          <div>
-            <label className="label">Fecha de Titulación</label>
-            <input {...register("fechaTitulacion")} type="date" className={f(!!errors.fechaTitulacion)} />
-            {errors.fechaTitulacion && <p className="hint">{errors.fechaTitulacion.message}</p>}
+            {errors.anioEgreso && <p className="hint">{errors.anioEgreso.message}</p>}
           </div>
 
           <div>
             <label className="label">Año de Titulación</label>
-            <select {...register("anioTitulacion", { valueAsNumber: true })} className="field">
+            <select {...register("anioTitulacion", { valueAsNumber: true })} className={f(!!errors.anioTitulacion)}>
               <option value="">— Seleccionar —</option>
               {years.map(y => <option key={y} value={y}>{y}</option>)}
             </select>
+            {errors.anioTitulacion && <p className="hint">{errors.anioTitulacion.message}</p>}
           </div>
+
+          <div>
+            <label className="label">Promedio de Egreso</label>
+            <input
+              {...register("promedio", { valueAsNumber: true })}
+              type="number"
+              min="0"
+              max="100"
+              step="0.01"
+              placeholder="Ej: 65.50"
+              className={f(!!errors.promedio)}
+            />
+            {errors.promedio && <p className="hint">{errors.promedio.message}</p>}
+          </div>
+
         </div>
-      </div>
+      </section>
 
       {/* ── Acciones ── */}
       <div className="flex gap-3 pt-4 border-t border-slate-800">

@@ -1,13 +1,11 @@
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { egresado, planEstudios, historialLaboral } from "@/lib/schema";
+import { egresado, historialLaboral } from "@/lib/schema";
 import { eq } from "drizzle-orm";
 import Link from "next/link";
-import {
-  Pencil, GraduationCap, Briefcase, Plus,
-} from "lucide-react";
-import { fmtDate } from "@/lib/utils";
+import { Pencil, GraduationCap, Briefcase, Plus } from "lucide-react";
+import { fmtDate, fmtGestion } from "@/lib/utils";
 import MiPerfilHistorial from "@/components/perfil/MiPerfilHistorial";
 import LogoutButton from "@/components/shared/LogoutButton";
 
@@ -15,19 +13,11 @@ export default async function MiPerfilPage() {
   const session = await getSession();
   if (!session || session.rol !== "egresado") redirect("/login");
 
-  // Si no tiene egresado asociado → registro inicial
   if (!session.idEgresado) redirect("/registro-inicial");
 
-  const [eg] = await db.select({
-    id: egresado.id, nombres: egresado.nombres, apellidos: egresado.apellidos,
-    ci: egresado.ci, telefono: egresado.telefono, direccion: egresado.direccion,
-    fechaNacimiento: egresado.fechaNacimiento, fechaGraduacion: egresado.fechaGraduacion,
-    idPlan: egresado.idPlan, nombrePlan: planEstudios.nombre,
-  })
-  .from(egresado)
-  .leftJoin(planEstudios, eq(egresado.idPlan, planEstudios.id))
-  .where(eq(egresado.id, session.idEgresado))
-  .limit(1);
+  const [eg] = await db.select().from(egresado)
+    .where(eq(egresado.id, session.idEgresado))
+    .limit(1);
 
   if (!eg) redirect("/registro-inicial");
 
@@ -35,11 +25,8 @@ export default async function MiPerfilPage() {
     .where(eq(historialLaboral.idEgresado, eg.id))
     .orderBy(historialLaboral.fechaInicio);
 
-  const empleoActual = historial.find(h => h.fechaFin === null);
-
   return (
     <div className="min-h-screen bg-slate-950">
-      {/* Top bar simple para egresado */}
       <header className="h-14 bg-slate-900/80 border-b border-slate-800 flex items-center justify-between px-6">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 bg-primary-600/20 border border-primary-500/30 rounded-xl
@@ -52,7 +39,8 @@ export default async function MiPerfilPage() {
       </header>
 
       <main className="max-w-4xl mx-auto p-6 lg:p-8 space-y-6 animate-fade-up">
-        {/* ── SECCIÓN: Datos personales ─────────────────────────────────── */}
+
+        {/* ── Datos personales ── */}
         <div className="card">
           <div className="flex items-start justify-between mb-6">
             <div>
@@ -71,36 +59,75 @@ export default async function MiPerfilPage() {
             </div>
             <div>
               <p className="label">Apellidos</p>
-              <p className="text-white font-medium">{eg.apellidos}</p>
+              <p className="text-white font-medium">
+                {eg.apellidoPaterno ?? eg.apellidos}
+                {eg.apellidoMaterno ? ` ${eg.apellidoMaterno}` : ""}
+              </p>
             </div>
             <div>
               <p className="label">CI</p>
               <p className="text-white font-mono">{eg.ci}</p>
             </div>
             <div>
-              <p className="label">Teléfono</p>
-              <p className="text-slate-300">{eg.telefono ?? <span className="text-slate-600">No registrado</span>}</p>
+              <p className="label">Celular</p>
+              <p className="text-slate-300">
+                {eg.celular ?? eg.telefono ?? <span className="text-slate-600">No registrado</span>}
+              </p>
             </div>
+            {eg.correoElectronico && (
+              <div>
+                <p className="label">Correo</p>
+                <p className="text-slate-300">{eg.correoElectronico}</p>
+              </div>
+            )}
+            {eg.genero && (
+              <div>
+                <p className="label">Género</p>
+                <p className="text-slate-300">{eg.genero}</p>
+              </div>
+            )}
             <div className="md:col-span-2">
               <p className="label">Dirección</p>
-              <p className="text-slate-300">{eg.direccion ?? <span className="text-slate-600">No registrada</span>}</p>
+              <p className="text-slate-300">
+                {eg.direccion ?? <span className="text-slate-600">No registrada</span>}
+              </p>
             </div>
             <div>
               <p className="label">Fecha de Nacimiento</p>
               <p className="text-slate-300">{fmtDate(eg.fechaNacimiento)}</p>
             </div>
             <div>
-              <p className="label">Fecha de Graduación</p>
-              <p className="text-slate-300">{fmtDate(eg.fechaGraduacion)}</p>
+              <p className="label">Fecha de Titulación</p>
+              <p className="text-slate-300">{fmtDate(eg.fechaTitulacion)}</p>
             </div>
-            <div className="md:col-span-2">
-              <p className="label">Plan de Estudios</p>
-              <p className="text-slate-300">{eg.nombrePlan ?? "—"}</p>
-            </div>
+            {eg.modalidadTitulacion && (
+              <div>
+                <p className="label">Modalidad de Titulación</p>
+                <p className="text-slate-300">{eg.modalidadTitulacion}</p>
+              </div>
+            )}
+            {eg.planEstudiosNombre && (
+              <div>
+                <p className="label">Plan de Estudios</p>
+                <p className="text-slate-300">Plan {eg.planEstudiosNombre}</p>
+              </div>
+            )}
+            {eg.anioIngreso && (
+              <div>
+                <p className="label">Gestión de Ingreso</p>
+                <p className="text-slate-300">{fmtGestion(eg.anioIngreso, eg.semestreIngreso)}</p>
+              </div>
+            )}
+            {eg.anioEgreso && (
+              <div>
+                <p className="label">Gestión de Egreso</p>
+                <p className="text-slate-300">{fmtGestion(eg.anioEgreso, eg.semestreEgreso)}</p>
+              </div>
+            )}
           </div>
         </div>
 
-        {/* ── SECCIÓN: Historial laboral ────────────────────────────────── */}
+        {/* ── Historial laboral ── */}
         <div className="card">
           <div className="flex items-center justify-between mb-5">
             <div>

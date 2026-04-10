@@ -16,6 +16,13 @@ export const fmtDateLong = (d: string | null | undefined) => {
   catch { return d; }
 };
 
+/** Formatea año + semestre como "2024/1". Ej: fmtGestion(2024, 1) → "2024/1" */
+export const fmtGestion = (anio: number | null | undefined, semestre: number | null | undefined): string => {
+  if (!anio) return "—";
+  if (!semestre) return String(anio);
+  return `${anio}/${semestre}`;
+};
+
 export const ok  = <T>(data: T, status = 200) =>
   Response.json({ data }, { status });
 
