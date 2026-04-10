@@ -47,12 +47,12 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     if (!parsed.success) return err(parsed.error.errors[0].message);
 
     const d = parsed.data;
-    const apellidosLegacy = [d.apellidoPaterno, d.apellidoMaterno]
+    const apellidos = [d.apellidoPaterno, d.apellidoMaterno]
       .filter(Boolean).join(" ") || d.apellidos;
 
     const [updated] = await db.update(egresado).set({
       nombres:             d.nombres,
-      apellidos:           apellidosLegacy,
+      apellidos,
       apellidoPaterno:     d.apellidoPaterno     ?? null,
       apellidoMaterno:     d.apellidoMaterno     ?? null,
       ci:                  d.ci,
@@ -64,16 +64,17 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
       direccion:           d.direccion           ?? null,
       tituloAcademico:     d.tituloAcademico     ?? null,
       fechaNacimiento:     d.fechaNacimiento,
+      // Legacy: fechaGraduacion requerida en BD
+      fechaGraduacion:     d.anioTitulacion
+        ? `${d.anioTitulacion}-01-01`
+        : d.fechaNacimiento,
       planEstudiosNombre:  d.planEstudiosNombre  ?? null,
       anioIngreso:         d.anioIngreso         ?? null,
       anioEgreso:          d.anioEgreso          ?? null,
       anioTitulacion:      d.anioTitulacion      ?? null,
-      promedio:            d.promedio            ?? null,
+      // Drizzle numeric espera string o null
+      promedio:            d.promedio != null ? String(d.promedio) : null,
       modalidadTitulacion: d.modalidadTitulacion ?? null,
-      // Mantener fechaGraduacion legacy con el año de titulación si disponible
-      fechaGraduacion:     d.anioTitulacion
-        ? `${d.anioTitulacion}-01-01`
-        : d.fechaNacimiento,
     })
     .where(eq(egresado.id, id))
     .returning();

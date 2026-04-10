@@ -23,7 +23,7 @@ export default function EgresadoForm({ egresado: eg, redirectTo }: Props) {
     (_, i) => 1998 + i
   ).reverse();
 
-  const { register, handleSubmit, formState: { errors, isSubmitting } } =
+  const { register, handleSubmit, watch, formState: { errors, isSubmitting } } =
     useForm<EgresadoInput>({
       resolver: zodResolver(egresadoSchema),
       defaultValues: eg ? {
@@ -47,6 +47,10 @@ export default function EgresadoForm({ egresado: eg, redirectTo }: Props) {
         modalidadTitulacion: eg.modalidadTitulacion ?? undefined,
       } : undefined,
     });
+
+  // Mostrar modalidad solo si hay año de titulación seleccionado
+  const anioTitulacionWatch = watch("anioTitulacion");
+  const tieneTitulacion = !!anioTitulacionWatch;
 
   const onSubmit = async (d: EgresadoInput) => {
     setServerError(null);
@@ -79,7 +83,6 @@ export default function EgresadoForm({ egresado: eg, redirectTo }: Props) {
           Datos Personales
         </p>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-
           <div>
             <label className="label">Nombres <span className="text-red-400">*</span></label>
             <input {...register("nombres")} className={f(!!errors.nombres)} />
@@ -148,10 +151,9 @@ export default function EgresadoForm({ egresado: eg, redirectTo }: Props) {
               placeholder="Ej: Lic. en Estadística"
             />
             <p className="text-slate-600 text-xs mt-1">
-              Se actualiza automáticamente si registra un postgrado
+              Se actualiza manualmente o al registrar un postgrado
             </p>
           </div>
-
         </div>
       </section>
 
@@ -165,7 +167,7 @@ export default function EgresadoForm({ egresado: eg, redirectTo }: Props) {
           <div>
             <label className="label">Plan de Estudios</label>
             <select {...register("planEstudiosNombre")} className="field">
-              <option value="">— Seleccionar —</option>
+              <option value="">— Sin especificar —</option>
               {PLANES_ESTUDIO.map(p => (
                 <option key={p} value={p}>Plan {p}</option>
               ))}
@@ -173,45 +175,33 @@ export default function EgresadoForm({ egresado: eg, redirectTo }: Props) {
           </div>
 
           <div>
-            <label className="label">Modalidad de Titulación</label>
-            <select {...register("modalidadTitulacion")} className="field">
-              <option value="">— Seleccionar —</option>
-              {MODALIDADES_TITULACION.map(m => (
-                <option key={m} value={m}>{m}</option>
-              ))}
-            </select>
-          </div>
-
-          <div>
             <label className="label">Año de Ingreso</label>
-            <select {...register("anioIngreso", { valueAsNumber: true })} className="field">
-              <option value="">— Seleccionar —</option>
+            <select
+              {...register("anioIngreso", { setValueAs: v => v === "" ? null : Number(v) })}
+              className="field"
+            >
+              <option value="">— Sin especificar —</option>
               {years.map(y => <option key={y} value={y}>{y}</option>)}
             </select>
+            {errors.anioIngreso && <p className="hint">{errors.anioIngreso.message}</p>}
           </div>
 
           <div>
             <label className="label">Año de Egreso</label>
-            <select {...register("anioEgreso", { valueAsNumber: true })} className={f(!!errors.anioEgreso)}>
-              <option value="">— Seleccionar —</option>
+            <select
+              {...register("anioEgreso", { setValueAs: v => v === "" ? null : Number(v) })}
+              className={f(!!errors.anioEgreso)}
+            >
+              <option value="">— Sin especificar —</option>
               {years.map(y => <option key={y} value={y}>{y}</option>)}
             </select>
             {errors.anioEgreso && <p className="hint">{errors.anioEgreso.message}</p>}
           </div>
 
           <div>
-            <label className="label">Año de Titulación</label>
-            <select {...register("anioTitulacion", { valueAsNumber: true })} className={f(!!errors.anioTitulacion)}>
-              <option value="">— Seleccionar —</option>
-              {years.map(y => <option key={y} value={y}>{y}</option>)}
-            </select>
-            {errors.anioTitulacion && <p className="hint">{errors.anioTitulacion.message}</p>}
-          </div>
-
-          <div>
             <label className="label">Promedio de Egreso</label>
             <input
-              {...register("promedio", { valueAsNumber: true })}
+              {...register("promedio", { setValueAs: v => v === "" ? null : Number(v) })}
               type="number"
               min="0"
               max="100"
@@ -221,6 +211,32 @@ export default function EgresadoForm({ egresado: eg, redirectTo }: Props) {
             />
             {errors.promedio && <p className="hint">{errors.promedio.message}</p>}
           </div>
+
+          {/* Año de titulación — completamente opcional */}
+          <div>
+            <label className="label">Año de Titulación</label>
+            <select
+              {...register("anioTitulacion", { setValueAs: v => v === "" ? null : Number(v) })}
+              className={f(!!errors.anioTitulacion)}
+            >
+              <option value="">— No titulado / Sin especificar —</option>
+              {years.map(y => <option key={y} value={y}>{y}</option>)}
+            </select>
+            {errors.anioTitulacion && <p className="hint">{errors.anioTitulacion.message}</p>}
+          </div>
+
+          {/* Modalidad — aparece solo cuando hay año de titulación */}
+          {tieneTitulacion && (
+            <div>
+              <label className="label">Modalidad de Titulación</label>
+              <select {...register("modalidadTitulacion")} className="field">
+                <option value="">— Seleccionar —</option>
+                {MODALIDADES_TITULACION.map(m => (
+                  <option key={m} value={m}>{m}</option>
+                ))}
+              </select>
+            </div>
+          )}
 
         </div>
       </section>

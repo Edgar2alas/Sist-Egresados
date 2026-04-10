@@ -6,30 +6,34 @@ import { eq } from "drizzle-orm";
 import Link from "next/link";
 import {
   ArrowLeft, Pencil, Phone, MapPin, Calendar,
-  Briefcase, Building2, GraduationCap, BookOpen, Clock,
+  Briefcase, Building2, GraduationCap, BookOpen, Clock, TrendingUp,
 } from "lucide-react";
 import AdminLayout from "@/components/shared/AdminLayout";
-import { cn, fmtDate, fmtGestion } from "@/lib/utils";
+import { cn, fmtDate } from "@/lib/utils";
 
-/** Calcula meses entre dos fechas ISO. Retorna null si alguna es inválida. */
-function mesesEntre(desde: string | null, hasta: string | null): number | null {
-  if (!desde || !hasta) return null;
-  const d = new Date(desde);
-  const h = new Date(hasta);
-  if (isNaN(d.getTime()) || isNaN(h.getTime())) return null;
-  const meses = (h.getFullYear() - d.getFullYear()) * 12 + (h.getMonth() - d.getMonth());
-  return meses >= 0 ? meses : null;
+// ── RF-07: tiempo hasta primer empleo expresado en tramos de año ──────────────
+function calcularTiempoPrimerEmpleo(
+  anioReferencia: number | null | undefined,  // anioTitulacion o anioEgreso
+  primerFechaEmpleo: string | null | undefined,
+): { texto: string; anios: number } | null {
+  if (!anioReferencia || !primerFechaEmpleo) return null;
+  const anioEmpleo = new Date(primerFechaEmpleo).getFullYear();
+  const diff = anioEmpleo - anioReferencia;
+  if (diff < 0) return null; // empleo antes de referencía — dato inconsistente
+
+  let texto: string;
+  if (diff === 0)      texto = "Menos de 1 año";
+  else if (diff === 1) texto = "1 año";
+  else                 texto = `${diff} años`;
+
+  return { texto, anios: diff };
 }
 
-function fmtDuracion(meses: number): string {
-  if (meses < 1)   return "menos de 1 mes";
-  if (meses < 12)  return `${meses} mes${meses !== 1 ? "es" : ""}`;
-  const anios = Math.floor(meses / 12);
-  const resto = meses % 12;
-  const partes = [`${anios} año${anios !== 1 ? "s" : ""}`];
-  if (resto > 0) partes.push(`${resto} mes${resto !== 1 ? "es" : ""}`);
-  return partes.join(" y ");
-}
+const ESTADO_BADGE: Record<string, string> = {
+  "En curso":   "badge-blue",
+  "Finalizado": "badge-green",
+  "Abandonado": "badge-slate",
+};
 
 export default async function EgresadoDetallePage({ params }: { params: { id: string } }) {
   const session = await getSession();
@@ -42,27 +46,30 @@ export default async function EgresadoDetallePage({ params }: { params: { id: st
   if (!eg) notFound();
 
   const [historial, postgrados] = await Promise.all([
-    db.select()
-      .from(historialLaboral)
+    db.select().from(historialLaboral)
       .where(eq(historialLaboral.idEgresado, id))
       .orderBy(historialLaboral.fechaInicio),
-    db.select()
-      .from(postgrado)
+    db.select().from(postgrado)
       .where(eq(postgrado.idEgresado, id))
       .orderBy(postgrado.anioInicio),
   ]);
 
-  const empleoActual  = historial.find(h => h.fechaFin === null);
-  const primerEmpleo  = historial.length > 0
+  const empleoActual = historial.find(h => h.fechaFin === null);
+
+  // Primer empleo cronológicamente
+  const primerEmpleo = historial.length > 0
     ? historial.reduce((a, b) =>
         new Date(a.fechaInicio) < new Date(b.fechaInicio) ? a : b
       )
     : null;
 
-  // RF-07: tiempo desde titulación hasta primer empleo
-  const mesesHastaEmpleo = primerEmpleo
-    ? mesesEntre(eg.fechaTitulacion, primerEmpleo.fechaInicio)
-    : null;
+  // RF-07: usar anioTitulacion si existe, si no anioEgreso
+  const anioReferencia = eg.anioTitulacion ?? eg.anioEgreso;
+  const tiempoPrimerEmpleo = calcularTiempoPrimerEmpleo(
+    anioReferencia,
+    primerEmpleo?.fechaInicio,
+  );
+  const etiquetaReferencia = eg.anioTitulacion ? "titulación" : "egreso";
 
   return (
     <AdminLayout correo={session.correo}>
@@ -81,7 +88,7 @@ export default async function EgresadoDetallePage({ params }: { params: { id: st
           {/* ── Columna izquierda ── */}
           <div className="space-y-4">
 
-            {/* Datos personales */}
+            {/* Avatar + estado */}
             <div className="card text-center">
               <div className="w-20 h-20 rounded-2xl bg-primary-600/20 border-2 border-primary-500/30
                               flex items-center justify-center mx-auto mb-4">
@@ -117,7 +124,7 @@ export default async function EgresadoDetallePage({ params }: { params: { id: st
               {eg.correoElectronico && (
                 <div className="flex gap-3 text-sm">
                   <span className="text-slate-500 text-xs mt-0.5">✉</span>
-                  <span className="text-slate-300 text-sm break-all">{eg.correoElectronico}</span>
+                  <span className="text-slate-300 break-all">{eg.correoElectronico}</span>
                 </div>
               )}
               {eg.direccion && (
@@ -133,60 +140,50 @@ export default async function EgresadoDetallePage({ params }: { params: { id: st
             </div>
 
             {/* Académico */}
-            <div className="card space-y-2">
+            <div className="card space-y-2.5">
               <p className="text-slate-500 text-xs uppercase tracking-widest font-semibold">Académico</p>
+
               {eg.planEstudiosNombre && (
-                <p className="text-slate-300 text-sm">
-                  <span className="text-slate-500">Plan: </span>Plan {eg.planEstudiosNombre}
-                </p>
+                <Row label="Plan">Plan {eg.planEstudiosNombre}</Row>
               )}
               {eg.modalidadTitulacion && (
-                <p className="text-slate-300 text-sm">
-                  <span className="text-slate-500">Modalidad: </span>{eg.modalidadTitulacion}
-                </p>
-              )}
-              {eg.anioTitulacion && (
-                <p className="text-slate-300 text-sm">
-                  <span className="text-slate-500">Año titulación: </span>{eg.anioTitulacion}
-                </p>
-              )}
-              {eg.fechaTitulacion && (
-                <p className="text-slate-300 text-sm">
-                  <span className="text-slate-500">Fecha titulación: </span>{fmtDate(eg.fechaTitulacion)}
-                </p>
+                <Row label="Modalidad">{eg.modalidadTitulacion}</Row>
               )}
               {eg.anioIngreso && (
-                <p className="text-slate-300 text-sm">
-                  <span className="text-slate-500">Ingreso: </span>
-                  {fmtGestion(eg.anioIngreso, eg.semestreIngreso)}
-                </p>
+                <Row label="Ingreso">{eg.anioIngreso}</Row>
               )}
               {eg.anioEgreso && (
-                <p className="text-slate-300 text-sm">
-                  <span className="text-slate-500">Egreso: </span>
-                  {fmtGestion(eg.anioEgreso, eg.semestreEgreso)}
-                </p>
+                <Row label="Egreso">{eg.anioEgreso}</Row>
+              )}
+              {eg.anioTitulacion && (
+                <Row label="Titulación">{eg.anioTitulacion}</Row>
+              )}
+              {eg.promedio && (
+                <Row label="Promedio">{eg.promedio}</Row>
               )}
               {/* RF-03: tiempo de permanencia */}
               {eg.anioIngreso && eg.anioEgreso && (
-                <p className="text-slate-300 text-sm">
-                  <span className="text-slate-500">Permanencia: </span>
-                  {eg.anioEgreso - eg.anioIngreso} año(s)
-                </p>
+                <Row label="Permanencia">{eg.anioEgreso - eg.anioIngreso} año(s)</Row>
               )}
+
               {/* RF-07: tiempo hasta primer empleo */}
-              {mesesHastaEmpleo !== null && (
-                <div className="mt-2 pt-2 border-t border-slate-800">
-                  <div className="flex items-center gap-2">
-                    <Clock className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                    <p className="text-slate-300 text-sm">
-                      <span className="text-slate-500">1er empleo tras titulación: </span>
-                      <span className="text-amber-400 font-medium">{fmtDuracion(mesesHastaEmpleo)}</span>
-                    </p>
+              {tiempoPrimerEmpleo !== null && (
+                <div className="mt-2 pt-2.5 border-t border-slate-800">
+                  <div className="flex items-start gap-2">
+                    <Clock className="w-3.5 h-3.5 text-amber-400 shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-slate-500 text-xs">
+                        1er empleo desde {etiquetaReferencia}
+                      </p>
+                      <p className="text-amber-400 font-semibold text-sm">
+                        {tiempoPrimerEmpleo.texto}
+                      </p>
+                    </div>
                   </div>
                 </div>
               )}
-              <p className="text-slate-600 text-xs mt-2 pt-2 border-t border-slate-800/50">
+
+              <p className="text-slate-700 text-xs pt-2 border-t border-slate-800/50">
                 Registrado: {fmtDate(eg.fechaRegistro?.toISOString())}
               </p>
             </div>
@@ -205,11 +202,10 @@ export default async function EgresadoDetallePage({ params }: { params: { id: st
                     <div>
                       <p className="text-white text-sm font-medium">{p.tipo}</p>
                       <p className="text-slate-400 text-xs">{p.institucion}</p>
-                      <p className="text-slate-600 text-xs">{p.pais} · {p.anioInicio}{p.anioFin ? `–${p.anioFin}` : ""}</p>
-                      <span className={cn("badge mt-1",
-                        p.estado === "En curso"   ? "badge-blue" :
-                        p.estado === "Finalizado" ? "badge-green" : "badge-slate"
-                      )}>
+                      <p className="text-slate-600 text-xs">
+                        {p.pais} · {p.anioInicio}{p.anioFin ? `–${p.anioFin}` : ""}
+                      </p>
+                      <span className={cn("badge mt-1", ESTADO_BADGE[p.estado] ?? "badge-slate")}>
                         {p.estado}
                       </span>
                     </div>
@@ -261,11 +257,9 @@ export default async function EgresadoDetallePage({ params }: { params: { id: st
                               {h.sector && (
                                 <span className={cn(
                                   "text-xs px-1.5 py-0.5 rounded-md font-medium",
-                                  h.sector === "Publico"
-                                    ? "bg-blue-500/10 text-blue-400"
-                                    : h.sector === "Privado"
-                                    ? "bg-purple-500/10 text-purple-400"
-                                    : "bg-slate-700 text-slate-400"
+                                  h.sector === "Publico"  ? "bg-blue-500/10 text-blue-400" :
+                                  h.sector === "Privado"  ? "bg-purple-500/10 text-purple-400" :
+                                  "bg-slate-700 text-slate-400"
                                 )}>
                                   {h.sector}
                                 </span>
@@ -294,5 +288,14 @@ export default async function EgresadoDetallePage({ params }: { params: { id: st
         </div>
       </div>
     </AdminLayout>
+  );
+}
+
+// Helper inline para filas del card académico
+function Row({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <p className="text-slate-300 text-sm">
+      <span className="text-slate-500">{label}: </span>{children}
+    </p>
   );
 }

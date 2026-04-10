@@ -93,13 +93,12 @@ export async function POST(req: NextRequest) {
     }
 
     const resultado = await db.transaction(async (tx) => {
-      const apellidosLegacy = [d.apellidoPaterno, d.apellidoMaterno]
+      const apellidos = [d.apellidoPaterno, d.apellidoMaterno]
         .filter(Boolean).join(" ") || d.apellidos;
 
-      // 1. Crear egresado
       const [nuevoEgresado] = await tx.insert(egresado).values({
         nombres:             d.nombres,
-        apellidos:           apellidosLegacy,
+        apellidos,
         apellidoPaterno:     d.apellidoPaterno     ?? null,
         apellidoMaterno:     d.apellidoMaterno     ?? null,
         ci:                  d.ci,
@@ -111,20 +110,20 @@ export async function POST(req: NextRequest) {
         direccion:           d.direccion           ?? null,
         tituloAcademico:     d.tituloAcademico     ?? null,
         fechaNacimiento:     d.fechaNacimiento,
+        // Legacy: fechaGraduacion requerida en BD — usar año titulación o nacimiento
+        fechaGraduacion:     d.anioTitulacion
+          ? `${d.anioTitulacion}-01-01`
+          : d.fechaNacimiento,
         planEstudiosNombre:  d.planEstudiosNombre  ?? null,
         anioIngreso:         d.anioIngreso         ?? null,
         anioEgreso:          d.anioEgreso          ?? null,
         anioTitulacion:      d.anioTitulacion      ?? null,
-        promedio:            d.promedio            ?? null,
+        // Drizzle numeric espera string o null
+        promedio:            d.promedio != null ? String(d.promedio) : null,
         modalidadTitulacion: d.modalidadTitulacion ?? null,
-        // fechaGraduacion legacy requerida — usar año titulación o fecha nacimiento
-        fechaGraduacion: d.anioTitulacion
-          ? `${d.anioTitulacion}-01-01`
-          : d.fechaNacimiento,
       }).returning();
 
-      // 2. Auto-crear usuario si tiene correo
-      // Contraseña inicial = CI del egresado
+      // Auto-crear usuario si tiene correo — contraseña inicial = CI
       if (d.correoElectronico && nuevoEgresado) {
         const passwordHash = await hashPassword(d.ci);
         await tx.insert(usuario).values({
@@ -133,7 +132,7 @@ export async function POST(req: NextRequest) {
           rol:         "egresado",
           estado:      "activo",
           idEgresado:  nuevoEgresado.id,
-          primerLogin: true, // marcado para que cambie contraseña al primer login
+          primerLogin: true,
         });
       }
 
