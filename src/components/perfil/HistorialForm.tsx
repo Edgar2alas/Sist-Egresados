@@ -1,10 +1,8 @@
 "use client";
-import { useState } from "react";
+// src/components/perfil/HistorialForm.tsx
+import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { historialSchema, type HistorialInput } from "@/lib/validations";
-import { Save, X } from "lucide-react";
+import { Save, X, Upload, FileText, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface Props {
@@ -19,171 +17,302 @@ const SECTORES       = ["Publico", "Privado", "Independiente", "ONG", "Otro"] as
 export default function HistorialForm({ idEgresado, historial, onSuccess }: Props) {
   const router    = useRouter();
   const isEditing = !!historial;
-  const [error, setError]       = useState<string | null>(null);
-  const [esActual, setEsActual] = useState(
-    historial ? historial.fechaFin === null : false
-  );
+  const fileRef   = useRef<HTMLInputElement>(null);
 
-  const { register, handleSubmit, setValue, formState: { errors, isSubmitting } } =
-    useForm<HistorialInput>({
-      resolver: zodResolver(historialSchema),
-      defaultValues: {
-        idEgresado,
-        empresa:            historial?.empresa        ?? "",
-        cargo:              historial?.cargo          ?? "",
-        area:               historial?.area           ?? "",
-        tipoContrato:       historial?.tipoContrato   ?? undefined,
-        ciudad:             historial?.ciudad         ?? "",
-        sector:             historial?.sector         ?? undefined,
-        ingresoAproximado:  historial?.ingresoAproximado ?? undefined,
-        fechaInicio:        historial?.fechaInicio?.split("T")[0] ?? historial?.fechaInicio ?? "",
-        fechaFin:           historial?.fechaFin?.split("T")[0]   ?? historial?.fechaFin   ?? "",
-        actualmenteTrabaja: historial ? historial.fechaFin === null : false,
-      },
-    });
+  const [error,    setError]    = useState<string | null>(null);
+  const [loading,  setLoading]  = useState(false);
+  const [esActual, setEsActual] = useState(historial ? historial.fechaFin === null : false);
+  const [archivo,  setArchivo]  = useState<File | null>(null);
 
-  const onSubmit = async (d: HistorialInput) => {
+  // Valores del formulario (controlado simple — sin react-hook-form para soportar FormData)
+  const [form, setForm] = useState({
+    empresa:           historial?.empresa           ?? "",
+    cargo:             historial?.cargo             ?? "",
+    area:              historial?.area              ?? "",
+    tipoContrato:      historial?.tipoContrato      ?? "",
+    ciudad:            historial?.ciudad            ?? "",
+    sector:            historial?.sector            ?? "",
+    ingresoAproximado: historial?.ingresoAproximado ?? "",
+    fechaInicio:       historial?.fechaInicio?.split("T")[0] ?? historial?.fechaInicio ?? "",
+    fechaFin:          historial?.fechaFin?.split("T")[0]   ?? historial?.fechaFin   ?? "",
+  });
+
+  const set = (k: string, v: string) => setForm(f => ({ ...f, [k]: v }));
+
+  const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    const permitidos = ["application/pdf", "image/jpeg", "image/png", "image/webp"];
+    if (!permitidos.includes(f.type)) {
+      setError("Solo se permiten archivos PDF, JPG, PNG o WEBP"); return;
+    }
+    if (f.size > 5 * 1024 * 1024) {
+      setError("El archivo no puede superar los 5MB"); return;
+    }
     setError(null);
-    const payload = {
-      ...d,
-      fechaFin:           esActual ? null : d.fechaFin || null,
-      actualmenteTrabaja: esActual,
-    };
-    const url    = isEditing ? `/api/historial/${historial.id}` : "/api/historial";
-    const method = isEditing ? "PUT" : "POST";
-    const res    = await fetch(url, {
-      method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload),
-    });
-    const json = await res.json();
-    if (!res.ok) { setError(json.error); return; }
-    if (onSuccess) onSuccess();
-    else { router.push("/mi-perfil"); router.refresh(); }
+    setArchivo(f);
   };
 
+  const onSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+
+    if (!form.empresa.trim() || form.empresa.length < 2) { setError("Empresa requerida"); return; }
+    if (!form.cargo.trim()   || form.cargo.length   < 2) { setError("Cargo requerido");   return; }
+    if (!form.fechaInicio)                               { setError("Fecha de inicio requerida"); return; }
+
+    setLoading(true);
+    try {
+      const fd = new FormData();
+      fd.append("idEgresado",         String(idEgresado));
+      fd.append("empresa",            form.empresa);
+      fd.append("cargo",              form.cargo);
+      fd.append("area",               form.area);
+      fd.append("tipoContrato",       form.tipoContrato);
+      fd.append("ciudad",             form.ciudad);
+      fd.append("sector",             form.sector);
+      fd.append("ingresoAproximado",  form.ingresoAproximado);
+      fd.append("fechaInicio",        form.fechaInicio);
+      fd.append("fechaFin",           esActual ? "" : form.fechaFin);
+      fd.append("actualmenteTrabaja", String(esActual));
+      if (archivo) fd.append("documento", archivo);
+
+      const url    = isEditing ? `/api/historial/${historial.id}` : "/api/historial";
+      const method = isEditing ? "PUT" : "POST";
+      const res    = await fetch(url, { method, body: fd });
+      const json   = await res.json();
+      if (!res.ok) { setError(json.error); return; }
+      if (onSuccess) onSuccess();
+      else { router.push("/mi-perfil"); router.refresh(); }
+    } finally { setLoading(false); }
+  };
+
+  const f = (val: string) => cn("field", !val && "");
+
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+    <form onSubmit={onSubmit} className="space-y-5">
       {error && <p className="error-box">{error}</p>}
 
-      {/* ── Empresa y Cargo ── */}
+      {/* Empresa y Cargo */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="md:col-span-2">
-          <label className="label">Empresa <span className="text-red-400">*</span></label>
-          <input {...register("empresa")} placeholder="Nombre de la empresa"
-            className={cn("field", errors.empresa && "field-err")} />
-          {errors.empresa && <p className="hint">{errors.empresa.message}</p>}
+          <label className="label">Empresa <span className="text-red-500">*</span></label>
+          <input
+            value={form.empresa}
+            onChange={e => set("empresa", e.target.value)}
+            placeholder="Nombre de la empresa"
+            className="field"
+          />
         </div>
-
         <div>
-          <label className="label">Cargo <span className="text-red-400">*</span></label>
-          <input {...register("cargo")} placeholder="Cargo o puesto"
-            className={cn("field", errors.cargo && "field-err")} />
-          {errors.cargo && <p className="hint">{errors.cargo.message}</p>}
+          <label className="label">Cargo <span className="text-red-500">*</span></label>
+          <input
+            value={form.cargo}
+            onChange={e => set("cargo", e.target.value)}
+            placeholder="Cargo o puesto"
+            className="field"
+          />
         </div>
-
         <div>
           <label className="label">Área</label>
-          <input {...register("area")} placeholder="Área o departamento (opcional)" className="field" />
+          <input
+            value={form.area}
+            onChange={e => set("area", e.target.value)}
+            placeholder="Área o departamento (opcional)"
+            className="field"
+          />
         </div>
       </div>
 
-      {/* ── Tipo contrato, Ciudad, Sector ── */}
+      {/* Tipo contrato, Ciudad, Sector */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div>
           <label className="label">Tipo de Contrato</label>
-          <select {...register("tipoContrato")} className="field">
+          <select value={form.tipoContrato} onChange={e => set("tipoContrato", e.target.value)} className="field">
             <option value="">— Seleccionar —</option>
-            {TIPOS_CONTRATO.map(t => (
-              <option key={t} value={t}>{t}</option>
-            ))}
+            {TIPOS_CONTRATO.map(t => <option key={t} value={t}>{t}</option>)}
           </select>
         </div>
-
         <div>
           <label className="label">Ciudad</label>
-          <input {...register("ciudad")} placeholder="Ej: La Paz" className="field" />
+          <input value={form.ciudad} onChange={e => set("ciudad", e.target.value)} placeholder="Ej: La Paz" className="field" />
         </div>
-
         <div>
           <label className="label">Sector</label>
-          <select {...register("sector")} className="field">
+          <select value={form.sector} onChange={e => set("sector", e.target.value)} className="field">
             <option value="">— Seleccionar —</option>
-            {SECTORES.map(s => (
-              <option key={s} value={s}>{s}</option>
-            ))}
+            {SECTORES.map(s => <option key={s} value={s}>{s}</option>)}
           </select>
         </div>
       </div>
 
-      {/* ── Ingreso aproximado ── */}
+      {/* Ingreso + Fecha inicio */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <label className="label">Ingreso Aproximado (Bs.)</label>
           <input
-            {...register("ingresoAproximado", { valueAsNumber: true })}
             type="number"
             min="0"
             step="100"
+            value={form.ingresoAproximado}
+            onChange={e => set("ingresoAproximado", e.target.value)}
             placeholder="Opcional"
-            className={cn("field", errors.ingresoAproximado && "field-err")}
+            className="field"
           />
-          <p className="text-slate-600 text-xs mt-1">Campo opcional y confidencial</p>
-          {errors.ingresoAproximado && <p className="hint">{errors.ingresoAproximado.message}</p>}
+          <p className="text-xs mt-1" style={{ color: "var(--placeholder)" }}>Campo opcional y confidencial</p>
         </div>
-
-        {/* ── Fecha de inicio ── */}
         <div>
-          <label className="label">Fecha de Inicio <span className="text-red-400">*</span></label>
-          <input {...register("fechaInicio")} type="date"
-            className={cn("field", errors.fechaInicio && "field-err")} />
-          {errors.fechaInicio && <p className="hint">{errors.fechaInicio.message}</p>}
+          <label className="label">Fecha de Inicio <span className="text-red-500">*</span></label>
+          <input
+            type="date"
+            value={form.fechaInicio}
+            onChange={e => set("fechaInicio", e.target.value)}
+            className="field"
+          />
         </div>
       </div>
 
-      {/* ── Toggle actualmente trabaja ── */}
+      {/* Toggle actualmente trabaja */}
       <div>
         <label className="flex items-center gap-3 cursor-pointer select-none">
           <div
-            onClick={() => {
-              const next = !esActual;
-              setEsActual(next);
-              setValue("actualmenteTrabaja", next);
-              if (next) setValue("fechaFin", "");
-            }}
+            onClick={() => setEsActual(v => !v)}
             className={cn(
-              "w-10 h-6 rounded-full relative transition-colors",
-              esActual ? "bg-emerald-600" : "bg-slate-700"
-            )}>
-            <span className={cn(
-              "absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-transform",
-              esActual ? "translate-x-5" : "translate-x-1"
-            )} />
+              "w-10 h-6 rounded-full relative transition-colors cursor-pointer",
+            )}
+            style={{ background: esActual ? "var(--verde)" : "var(--borde)" }}
+          >
+            <span
+              className="absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-transform"
+              style={{ transform: esActual ? "translateX(1.25rem)" : "translateX(0.25rem)" }}
+            />
           </div>
-          <span className="text-slate-300 text-sm font-medium">
+          <span className="text-sm font-medium" style={{ color: "var(--azul-pizarra)" }}>
             Actualmente trabajo aquí
           </span>
         </label>
       </div>
 
-      {/* ── Fecha fin — solo si no es trabajo actual ── */}
       {!esActual && (
         <div className="max-w-xs">
           <label className="label">Fecha de Fin</label>
-          <input {...register("fechaFin")} type="date"
-            className={cn("field", errors.fechaFin && "field-err")} />
-          {errors.fechaFin && <p className="hint">{errors.fechaFin.message}</p>}
+          <input
+            type="date"
+            value={form.fechaFin}
+            onChange={e => set("fechaFin", e.target.value)}
+            className="field"
+          />
         </div>
       )}
 
-      {/* ── Acciones ── */}
-      <div className="flex gap-3 pt-3 border-t border-slate-800">
-        <button type="submit" disabled={isSubmitting} className="btn-primary">
-          {isSubmitting
+      {/* ── Documento de verificación ── */}
+      {!isEditing && (
+        <div
+          className="rounded-xl p-4"
+          style={{ background: "var(--turquesa-pale)", border: "1px solid rgba(0,165,168,0.20)" }}
+        >
+          <div className="flex items-start gap-3 mb-3">
+            <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" style={{ color: "var(--turquesa-dark)" }} />
+            <div>
+              <p className="text-sm font-semibold" style={{ color: "var(--turquesa-dark)" }}>
+                Documento de verificación
+              </p>
+              <p className="text-xs mt-0.5" style={{ color: "var(--gris-grafito)" }}>
+                Adjunta un certificado de trabajo, contrato o credencial institucional.
+                El administrador revisará y confirmará tu experiencia. (Opcional pero recomendado)
+              </p>
+            </div>
+          </div>
+
+          {archivo ? (
+            <div className="flex items-center gap-3 p-3 rounded-lg" style={{ background: "var(--blanco)", border: "1px solid var(--borde)" }}>
+              <FileText className="w-4 h-4 shrink-0" style={{ color: "var(--turquesa)" }} />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium truncate" style={{ color: "var(--azul-pizarra)" }}>{archivo.name}</p>
+                <p className="text-xs" style={{ color: "var(--placeholder)" }}>
+                  {(archivo.size / 1024).toFixed(0)} KB
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => { setArchivo(null); if (fileRef.current) fileRef.current.value = ""; }}
+                className="btn-ghost btn-xs"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => fileRef.current?.click()}
+              className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg text-sm font-medium transition-all"
+              style={{
+                background: "var(--blanco)",
+                border: "1.5px dashed rgba(0,165,168,0.40)",
+                color: "var(--turquesa-dark)",
+              }}
+            >
+              <Upload className="w-4 h-4" />
+              Adjuntar documento (PDF, JPG, PNG — máx. 5MB)
+            </button>
+          )}
+
+          <input
+            ref={fileRef}
+            type="file"
+            accept=".pdf,.jpg,.jpeg,.png,.webp"
+            onChange={handleFile}
+            className="hidden"
+          />
+        </div>
+      )}
+
+      {/* Estado de verificación si ya existe */}
+      {isEditing && historial?.verificacionEstado && (
+        <div
+          className="rounded-xl px-4 py-3 flex items-center gap-3"
+          style={{
+            background: historial.verificacionEstado === "aprobado"
+              ? "var(--verde-light)"
+              : historial.verificacionEstado === "rechazado"
+              ? "#FEF2F2"
+              : "var(--naranja-light)",
+            border: `1px solid ${
+              historial.verificacionEstado === "aprobado" ? "#86efac"
+              : historial.verificacionEstado === "rechazado" ? "#FECACA"
+              : "#fed7aa"
+            }`,
+          }}
+        >
+          <span className="text-sm font-semibold" style={{
+            color: historial.verificacionEstado === "aprobado"
+              ? "var(--verde)"
+              : historial.verificacionEstado === "rechazado"
+              ? "#dc2626"
+              : "var(--naranja)",
+          }}>
+            {historial.verificacionEstado === "aprobado" && "✓ Experiencia verificada"}
+            {historial.verificacionEstado === "rechazado" && "✗ Verificación rechazada"}
+            {historial.verificacionEstado === "pendiente" && "⏳ Pendiente de verificación"}
+          </span>
+          {historial.rechazoMotivo && (
+            <span className="text-xs" style={{ color: "#dc2626" }}>— {historial.rechazoMotivo}</span>
+          )}
+        </div>
+      )}
+
+      {/* Acciones */}
+      <div className="flex gap-3 pt-3 border-t" style={{ borderColor: "var(--borde)" }}>
+        <button type="submit" disabled={loading} className="btn-primary">
+          {loading
             ? <><span className="spinner" /> Guardando...</>
             : <><Save className="w-4 h-4" /> {isEditing ? "Guardar cambios" : "Agregar experiencia"}</>}
         </button>
-        <button type="button"
+        <button
+          type="button"
           onClick={() => onSuccess ? onSuccess() : router.push("/mi-perfil")}
-          className="btn-ghost">
+          className="btn-ghost"
+        >
           <X className="w-4 h-4" /> Cancelar
         </button>
       </div>

@@ -3,7 +3,12 @@ import {
   date, timestamp, boolean, numeric, pgEnum,
   uniqueIndex, index,
 } from "drizzle-orm/pg-core";
-import { relations } from "drizzle-orm";
+import { customType, relations } from "drizzle-orm";
+
+// bytea personalizado para Drizzle
+const bytea = customType<{ data: Buffer; driverData: Buffer }>({
+  dataType() { return "bytea"; },
+});
 
 // ── Enums ─────────────────────────────────────────────────────────────────────
 export const usuarioRolEnum      = pgEnum("usuario_rol",           ["admin", "egresado"]);
@@ -20,6 +25,9 @@ export const modalidadEnum       = pgEnum("modalidad_titulacion_enum", [
 export const sugerenciaTipoEnum  = pgEnum("sugerencia_tipo_enum",  [
   "Sugerencia general", "Sugerencia para el sistema", "Especializacion recomendada",
 ]);
+export const verificacionEstadoEnum = pgEnum("verificacion_estado_enum", [
+  "pendiente", "aprobado", "rechazado",
+]);
 
 export const PLANES_ESTUDIO = ["1994", "2008", "2020"] as const;
 export type PlanEstudiosNombre = typeof PLANES_ESTUDIO[number];
@@ -31,8 +39,6 @@ export const MODALIDADES_TITULACION = [
 // ── egresado ──────────────────────────────────────────────────────────────────
 export const egresado = pgTable("egresado", {
   id:              serial("id").primaryKey(),
-
-  // RF-02: Datos personales
   nombres:         varchar("nombres",          { length: 100 }).notNull(),
   apellidos:       varchar("apellidos",        { length: 100 }).notNull(),
   apellidoPaterno: varchar("apellido_paterno", { length: 100 }),
@@ -44,35 +50,21 @@ export const egresado = pgTable("egresado", {
   telefono:        varchar("telefono",         { length: 20  }),
   celular:         varchar("celular",          { length: 20  }),
   direccion:       varchar("direccion",        { length: 200 }),
-  // Título académico — texto libre editable por admin
-  // Ej: "Lic. en Estadística", "Mgr. en Estadística", etc.
   tituloAcademico: varchar("titulo_academico", { length: 150 }),
   fechaNacimiento: date("fecha_nacimiento").notNull(),
-
-  // Plan de estudios — texto simple
   planEstudiosNombre: varchar("plan_estudios_nombre", { length: 50 }),
-  idPlan:             integer("id_plan"), // legacy
-
-  // RF-03: Datos académicos — solo año, sin semestre en formulario
+  idPlan:             integer("id_plan"),
   anioIngreso:    integer("anio_ingreso"),
   anioEgreso:     integer("anio_egreso"),
   anioTitulacion: integer("anio_titulacion"),
-
-  // Semestres — en BD por si se necesitan después, no expuestos en form
   semestreIngreso: smallint("semestre_ingreso"),
   semestreEgreso:  smallint("semestre_egreso"),
-
-  // RF-03: Promedio de egreso
   promedio: numeric("promedio", { precision: 4, scale: 2 }),
-
-  // RF-03: Modalidad de titulación
   modalidadTitulacion: modalidadEnum("modalidad_titulacion"),
-
-  // Legacy — se mantienen en BD
   fechaTitulacion: date("fecha_titulacion"),
   fechaGraduacion: date("fecha_graduacion").notNull(),
-
-  // RF-12: Auditoría
+  // Directorio público (RF-Bloque E)
+  mostrarEnDirectorio: boolean("mostrar_en_directorio").notNull().default(false),
   fechaRegistro:       timestamp("fecha_registro").notNull().defaultNow(),
   ultimaActualizacion: timestamp("ultima_actualizacion").defaultNow(),
 }, (t) => ({
@@ -82,7 +74,7 @@ export const egresado = pgTable("egresado", {
   planNombreIdx: index("idx_egresado_plan_nombre").on(t.planEstudiosNombre),
 }));
 
-// ── historial_laboral (RF-06) ─────────────────────────────────────────────────
+// ── historial_laboral (RF-06 + Bloque C verificación) ────────────────────────
 export const historialLaboral = pgTable("historial_laboral", {
   id:          serial("id").primaryKey(),
   idEgresado:  integer("id_egresado").notNull()
@@ -96,11 +88,24 @@ export const historialLaboral = pgTable("historial_laboral", {
   ciudad:            varchar("ciudad",          { length: 100 }),
   sector:            sectorEnum("sector"),
   ingresoAproximado: numeric("ingreso_aproximado", { precision: 10, scale: 2 }),
+
+  // ── Verificación de documento (Bloque C) ──────────────────────────────────
+  // NULL = no requirió documento (experiencias anteriores)
+  verificacionEstado:  verificacionEstadoEnum("verificacion_estado"),
+  // Binario del documento — se borra al aprobar/rechazar
+  documentoBinario:    bytea("documento_binario"),
+  documentoNombre:     varchar("documento_nombre",   { length: 255 }),
+  documentoTipo:       varchar("documento_tipo",     { length: 100 }),  // MIME type
+  documentoSubidoEn:   timestamp("documento_subido_en"),
+  verificadoEn:        timestamp("verificado_en"),
+  rechazoMotivo:       text("rechazo_motivo"),
+
   ultimaActualizacion: timestamp("ultima_actualizacion").defaultNow(),
   creadoEn:            timestamp("creado_en").notNull().defaultNow(),
 }, (t) => ({
-  sectorIdx: index("idx_historial_sector").on(t.sector),
-  ciudadIdx: index("idx_historial_ciudad").on(t.ciudad),
+  sectorIdx:        index("idx_historial_sector").on(t.sector),
+  ciudadIdx:        index("idx_historial_ciudad").on(t.ciudad),
+  verificacionIdx:  index("idx_historial_verificacion").on(t.verificacionEstado),
 }));
 
 // ── postgrado (RF-08) ─────────────────────────────────────────────────────────
@@ -195,7 +200,6 @@ export type NuevoUsuario      = typeof usuario.$inferInsert;
 export type VerificacionToken = typeof verificacionTokens.$inferSelect;
 export type NuevoToken        = typeof verificacionTokens.$inferInsert;
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
 export const fmtGestion = (anio: number | null | undefined, semestre: number | null | undefined): string => {
   if (!anio) return "—";
   if (!semestre) return String(anio);
