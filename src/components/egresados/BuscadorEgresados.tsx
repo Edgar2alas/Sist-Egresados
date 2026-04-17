@@ -1,107 +1,301 @@
 "use client";
+// src/components/egresados/BuscadorEgresados.tsx
 import { useRouter, usePathname } from "next/navigation";
-import { useForm } from "react-hook-form";
-import { Search, SlidersHorizontal, X } from "lucide-react";
+import { useState } from "react";
+import { Search, SlidersHorizontal, X, ChevronDown } from "lucide-react";
+import { MODALIDADES_TITULACION } from "@/lib/schema";
 
 interface SP {
-  busqueda?:   string;
-  plan?:       string;
-  anioEgreso?: string;
-  conEmpleo?:  string;
-  genero?:     string;
-  page?:       string;
+  busqueda?:       string;
+  plan?:           string;
+  anioEgreso?:     string;
+  anioTitulacion?: string;
+  conEmpleo?:      string;
+  genero?:         string;
+  sector?:         string;
+  ciudad?:         string;
+  modalidad?:      string;
+  tienePostgrado?: string;
+  page?:           string;
 }
 
 interface Props {
   planes:       readonly string[];
   searchParams: SP;
+  ciudades?:    string[];
 }
 
-export default function BuscadorEgresados({ planes, searchParams }: Props) {
+const LABEL_MAP: Record<string, string> = {
+  busqueda: "Búsqueda", plan: "Plan", anioEgreso: "Año egreso",
+  anioTitulacion: "Año titulación", conEmpleo: "Empleo",
+  genero: "Género", sector: "Sector", ciudad: "Ciudad",
+  modalidad: "Modalidad", tienePostgrado: "Postgrado",
+};
+const BOOL_LABEL: Record<string, string> = { "true": "Sí", "false": "No" };
+
+export default function BuscadorEgresados({ planes, searchParams, ciudades = [] }: Props) {
   const router   = useRouter();
   const pathname = usePathname();
-  const years    = Array.from(
-    { length: new Date().getFullYear() - 1997 },
-    (_, i) => 1998 + i
+  const [open, setOpen] = useState(false);
+
+  const years = Array.from(
+    { length: new Date().getFullYear() - 1997 }, (_, i) => 1998 + i
   ).reverse();
 
-  const { register, handleSubmit, reset } = useForm<SP>({
-    defaultValues: {
-      busqueda:   searchParams.busqueda   ?? "",
-      plan:       searchParams.plan       ?? "",
-      anioEgreso: searchParams.anioEgreso ?? "",
-      conEmpleo:  searchParams.conEmpleo  ?? "",
-      genero:     searchParams.genero     ?? "",
-    },
+  const [form, setForm] = useState<SP>({
+    busqueda:       searchParams.busqueda       ?? "",
+    plan:           searchParams.plan           ?? "",
+    anioEgreso:     searchParams.anioEgreso     ?? "",
+    anioTitulacion: searchParams.anioTitulacion ?? "",
+    conEmpleo:      searchParams.conEmpleo      ?? "",
+    genero:         searchParams.genero         ?? "",
+    sector:         searchParams.sector         ?? "",
+    ciudad:         searchParams.ciudad         ?? "",
+    modalidad:      searchParams.modalidad      ?? "",
+    tienePostgrado: searchParams.tienePostgrado ?? "",
   });
 
-  const onSubmit = (d: SP) => {
+  const set = (k: keyof SP, v: string) => setForm(f => ({ ...f, [k]: v }));
+
+  const buildParams = (override?: Partial<SP>) => {
+    const merged = { ...form, ...override };
     const p = new URLSearchParams();
-    Object.entries(d).forEach(([k, v]) => { if (v) p.set(k, v as string); });
+    Object.entries(merged).forEach(([k, v]) => { if (v && k !== "page") p.set(k, v); });
+    return p;
+  };
+
+  const onSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    router.push(`${pathname}?${buildParams()}`);
+  };
+
+  const removeFilter = (k: keyof SP) => {
+    set(k, "");
+    const p = new URLSearchParams();
+    Object.entries({ ...form, [k]: "" }).forEach(([fk, fv]) => {
+      if (fv && fk !== "page") p.set(fk, fv);
+    });
     router.push(`${pathname}?${p}`);
   };
 
   const onClear = () => {
-    reset({ busqueda: "", plan: "", anioEgreso: "", conEmpleo: "", genero: "" });
+    const empty: SP = {
+      busqueda: "", plan: "", anioEgreso: "", anioTitulacion: "",
+      conEmpleo: "", genero: "", sector: "", ciudad: "", modalidad: "", tienePostgrado: "",
+    };
+    setForm(empty);
     router.push(pathname);
   };
 
-  const hasFilters = Object.values(searchParams).some(Boolean);
+  const activeFilters = Object.entries(form).filter(([k, v]) => k !== "page" && v);
+  const activeCount   = activeFilters.length;
+
+  // Estilos inline para no depender de clases Tailwind de variables CSS
+  const fieldCss: React.CSSProperties = {
+    width: "100%",
+    background: "var(--humo)",
+    border: "1.5px solid var(--borde)",
+    borderRadius: "0.75rem",
+    padding: "0.5rem 0.875rem",
+    fontSize: "0.875rem",
+    color: "var(--azul-pizarra)",
+    outline: "none",
+  };
+
+  const Field = ({ label, children }: { label: string; children: React.ReactNode }) => (
+    <div>
+      <label style={{ display: "block", fontSize: "0.7rem", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--gris-grafito)", marginBottom: "0.375rem" }}>
+        {label}
+      </label>
+      {children}
+    </div>
+  );
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="card flex flex-wrap gap-3 items-end">
+    <form onSubmit={onSubmit}>
+      <div className="card" style={{ background: "var(--blanco)" }}>
 
-      <div className="flex-1 min-w-[180px]">
-        <label className="label">Buscar</label>
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-          <input {...register("busqueda")} placeholder="Nombre, apellido o CI…" className="field pl-9" />
-        </div>
-      </div>
+        {/* ── Fila básica ── */}
+        <div className="flex flex-wrap gap-3 items-end">
 
-      <div className="min-w-[140px]">
-        <label className="label">Plan de Estudios</label>
-        <select {...register("plan")} className="field">
-          <option value="">Todos</option>
-          {planes.map(p => <option key={p} value={p}>Plan {p}</option>)}
-        </select>
-      </div>
+          {/* Texto libre */}
+          <div style={{ flex: "1 1 220px", minWidth: "180px" }}>
+            <Field label="Buscar">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: "var(--placeholder)" }} />
+                <input
+                  value={form.busqueda ?? ""}
+                  onChange={e => set("busqueda", e.target.value)}
+                  placeholder="Nombre, apellido o CI…"
+                  style={{ ...fieldCss, paddingLeft: "2.25rem" }}
+                />
+              </div>
+            </Field>
+          </div>
 
-      <div className="min-w-[120px]">
-        <label className="label">Año Egreso</label>
-        <select {...register("anioEgreso")} className="field">
-          <option value="">Todos</option>
-          {years.map(y => <option key={y} value={y}>{y}</option>)}
-        </select>
-      </div>
+          {/* Plan */}
+          <div style={{ minWidth: "145px" }}>
+            <Field label="Plan de Estudios">
+              <select value={form.plan} onChange={e => set("plan", e.target.value)} style={fieldCss}>
+                <option value="">Todos</option>
+                {planes.map(p => <option key={p} value={p}>Plan {p}</option>)}
+              </select>
+            </Field>
+          </div>
 
-      <div className="min-w-[120px]">
-        <label className="label">Género</label>
-        <select {...register("genero")} className="field">
-          <option value="">Todos</option>
-          <option value="Masculino">Masculino</option>
-          <option value="Femenino">Femenino</option>
-          <option value="Otro">Otro</option>
-        </select>
-      </div>
+          {/* Empleo */}
+          <div style={{ minWidth: "140px" }}>
+            <Field label="Estado Laboral">
+              <select value={form.conEmpleo} onChange={e => set("conEmpleo", e.target.value)} style={fieldCss}>
+                <option value="">Todos</option>
+                <option value="true">Con empleo</option>
+                <option value="false">Sin empleo</option>
+              </select>
+            </Field>
+          </div>
 
-      <div className="min-w-[140px]">
-        <label className="label">Estado Laboral</label>
-        <select {...register("conEmpleo")} className="field">
-          <option value="">Todos</option>
-          <option value="true">Con empleo</option>
-          <option value="false">Sin empleo</option>
-        </select>
-      </div>
-
-      <div className="flex gap-2">
-        <button type="submit" className="btn-primary btn-sm">
-          <SlidersHorizontal className="w-3.5 h-3.5" /> Filtrar
-        </button>
-        {hasFilters && (
-          <button type="button" onClick={onClear} className="btn-ghost btn-sm">
-            <X className="w-3.5 h-3.5" /> Limpiar
+          {/* Toggle filtros avanzados */}
+          <button
+            type="button"
+            onClick={() => setOpen(v => !v)}
+            style={{
+              display: "inline-flex", alignItems: "center", gap: "0.5rem",
+              padding: "0.5rem 0.875rem", borderRadius: "0.5rem",
+              fontSize: "0.75rem", fontWeight: 600, cursor: "pointer",
+              background: open ? "var(--turquesa-pale)" : "var(--humo)",
+              border: `1.5px solid ${open ? "var(--turquesa)" : "var(--borde)"}`,
+              color: open ? "var(--turquesa-dark)" : "var(--gris-grafito)",
+              position: "relative",
+              transition: "all 0.15s",
+            }}
+          >
+            <SlidersHorizontal style={{ width: "0.875rem", height: "0.875rem" }} />
+            Filtros
+            {activeCount > 0 && (
+              <span style={{
+                position: "absolute", top: "-6px", right: "-6px",
+                width: "18px", height: "18px", borderRadius: "9999px",
+                background: "var(--turquesa)", color: "white",
+                fontSize: "0.65rem", fontWeight: 700,
+                display: "flex", alignItems: "center", justifyContent: "center",
+              }}>
+                {activeCount}
+              </span>
+            )}
+            <ChevronDown style={{ width: "0.875rem", height: "0.875rem", transform: open ? "rotate(180deg)" : "none", transition: "transform 0.2s" }} />
           </button>
+
+          {/* Acciones */}
+          <button type="submit" className="btn-primary btn-sm">
+            <Search className="w-3.5 h-3.5" /> Buscar
+          </button>
+          {activeCount > 0 && (
+            <button type="button" onClick={onClear} className="btn-ghost btn-sm">
+              <X className="w-3.5 h-3.5" /> Limpiar todo
+            </button>
+          )}
+        </div>
+
+        {/* ── Filtros avanzados ── */}
+        {open && (
+          <div
+            className="mt-4 pt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"
+            style={{ borderTop: "1px solid var(--borde)" }}
+          >
+            <Field label="Género">
+              <select value={form.genero} onChange={e => set("genero", e.target.value)} style={fieldCss}>
+                <option value="">Todos</option>
+                <option value="Masculino">Masculino</option>
+                <option value="Femenino">Femenino</option>
+                <option value="Otro">Otro</option>
+              </select>
+            </Field>
+
+            <Field label="Sector Laboral">
+              <select value={form.sector} onChange={e => set("sector", e.target.value)} style={fieldCss}>
+                <option value="">Todos</option>
+                <option value="Publico">Público</option>
+                <option value="Privado">Privado</option>
+                <option value="Independiente">Independiente</option>
+                <option value="ONG">ONG</option>
+                <option value="Otro">Otro</option>
+              </select>
+            </Field>
+
+            <Field label="Ciudad">
+              {ciudades.length > 0 ? (
+                <select value={form.ciudad} onChange={e => set("ciudad", e.target.value)} style={fieldCss}>
+                  <option value="">Todas</option>
+                  {ciudades.map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
+              ) : (
+                <input
+                  value={form.ciudad ?? ""}
+                  onChange={e => set("ciudad", e.target.value)}
+                  placeholder="Ej: La Paz"
+                  style={fieldCss}
+                />
+              )}
+            </Field>
+
+            <Field label="Año de Egreso">
+              <select value={form.anioEgreso} onChange={e => set("anioEgreso", e.target.value)} style={fieldCss}>
+                <option value="">Todos</option>
+                {years.map(y => <option key={y} value={y}>{y}</option>)}
+              </select>
+            </Field>
+
+            <Field label="Año de Titulación">
+              <select value={form.anioTitulacion} onChange={e => set("anioTitulacion", e.target.value)} style={fieldCss}>
+                <option value="">Todos</option>
+                {years.map(y => <option key={y} value={y}>{y}</option>)}
+              </select>
+            </Field>
+
+            <Field label="Modalidad">
+              <select value={form.modalidad} onChange={e => set("modalidad", e.target.value)} style={fieldCss}>
+                <option value="">Todas</option>
+                {MODALIDADES_TITULACION.map(m => <option key={m} value={m}>{m}</option>)}
+              </select>
+            </Field>
+
+            <Field label="Postgrado">
+              <select value={form.tienePostgrado} onChange={e => set("tienePostgrado", e.target.value)} style={fieldCss}>
+                <option value="">Todos</option>
+                <option value="true">Con postgrado</option>
+                <option value="false">Sin postgrado</option>
+              </select>
+            </Field>
+          </div>
+        )}
+
+        {/* ── Chips activos ── */}
+        {activeCount > 0 && (
+          <div className="mt-3 flex flex-wrap gap-2">
+            {activeFilters.map(([k, v]) => (
+              <span
+                key={k}
+                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium"
+                style={{
+                  background: "var(--turquesa-pale)",
+                  color: "var(--turquesa-dark)",
+                  border: "1px solid rgba(0,165,168,0.20)",
+                }}
+              >
+                <span style={{ color: "var(--placeholder)", fontWeight: 400 }}>
+                  {LABEL_MAP[k] ?? k}:
+                </span>
+                {BOOL_LABEL[v ?? ""] ?? v}
+                <button
+                  type="button"
+                  onClick={() => removeFilter(k as keyof SP)}
+                  style={{ display: "flex", alignItems: "center" }}
+                >
+                  <X style={{ width: "0.75rem", height: "0.75rem" }} />
+                </button>
+              </span>
+            ))}
+          </div>
         )}
       </div>
     </form>

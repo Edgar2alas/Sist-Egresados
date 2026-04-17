@@ -5,6 +5,7 @@ import {
   LayoutDashboard, Users, FileBarChart,
   UserCog, LogOut, GraduationCap, ChevronRight,
   BookOpen,
+  ShieldCheck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -14,6 +15,7 @@ const NAV = [
   { href: "/reportes",   label: "Reportes",   icon: FileBarChart },
   { href: "/postgrados", label: "Postgrados", icon: BookOpen },
   { href: "/usuarios",   label: "Usuarios",   icon: UserCog },
+  { href: "/verificaciones", label: "Verificaciones", icon: ShieldCheck },
 ];
 
 export default function AdminLayout({

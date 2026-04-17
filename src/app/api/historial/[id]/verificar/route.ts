@@ -9,7 +9,7 @@ import { z } from "zod";
 
 const schema = z.object({
   accion:  z.enum(["aprobar", "rechazar"]),
-  motivo:  z.string().min(5).optional(), // requerido solo si rechaza
+  motivo:  z.string().min(5).optional(),
 });
 
 // GET — descargar el documento (solo admin)
@@ -33,7 +33,10 @@ export async function GET(_: NextRequest, { params }: { params: { id: string } }
     if (!h) return err("Registro no encontrado", 404);
     if (!h.documentoBinario) return err("Sin documento adjunto", 404);
 
-    return new Response(h.documentoBinario, {
+    // Convertir Buffer a Uint8Array para que sea compatible con BodyInit
+    const body = new Uint8Array(h.documentoBinario);
+
+    return new Response(body, {
       headers: {
         "Content-Type":        h.documentoTipo ?? "application/octet-stream",
         "Content-Disposition": `inline; filename="${h.documentoNombre ?? "documento"}"`,
@@ -60,9 +63,8 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       return err("Debes indicar el motivo del rechazo (mínimo 5 caracteres)");
     }
 
-    // Verificar que existe y tiene documento pendiente
     const [h] = await db.select({
-      id: historialLaboral.id,
+      id:                 historialLaboral.id,
       verificacionEstado: historialLaboral.verificacionEstado,
     })
     .from(historialLaboral)
@@ -73,13 +75,11 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     if (h.verificacionEstado !== "pendiente")
       return err("Este registro ya fue procesado");
 
-    // Actualizar estado + borrar binario (ya no necesario)
     const [updated] = await db.update(historialLaboral).set({
-      verificacionEstado:  accion === "aprobar" ? "aprobado" : "rechazado",
-      verificadoEn:        new Date(),
-      rechazoMotivo:       accion === "rechazar" ? motivo : null,
-      // Borrar el binario — el estado ya queda registrado
-      documentoBinario:    null,
+      verificacionEstado: accion === "aprobar" ? "aprobado" : "rechazado",
+      verificadoEn:       new Date(),
+      rechazoMotivo:      accion === "rechazar" ? motivo : null,
+      documentoBinario:   null, // Borrar binario al procesar
     })
     .where(eq(historialLaboral.id, id))
     .returning({

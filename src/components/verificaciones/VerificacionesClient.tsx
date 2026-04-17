@@ -16,7 +16,7 @@ interface Pendiente {
   fechaFin:         string | null;
   documentoNombre:  string | null;
   documentoTipo:    string | null;
-  documentoSubidoEn:string | null;
+  documentoSubidoEn: Date | string | null;
   verificacionEstado: string | null;
   egresadoId:       number;
   nombres:          string;
@@ -150,7 +150,7 @@ export default function VerificacionesClient({ pendientes }: { pendientes: Pendi
                 </span>
                 {p.documentoSubidoEn && (
                   <span style={{ color: "var(--placeholder)" }}>
-                    Subido: {fmtDate(p.documentoSubidoEn)}
+                    Subido: {fmtDate(typeof p.documentoSubidoEn === 'string' ? p.documentoSubidoEn : new Date(p.documentoSubidoEn).toISOString())}
                   </span>
                 )}
               </div>

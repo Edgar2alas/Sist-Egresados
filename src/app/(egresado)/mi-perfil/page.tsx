@@ -9,6 +9,7 @@ import { Pencil, Briefcase, Plus, BookOpen, GraduationCap, Clock } from "lucide-
 import { fmtDate, fmtGestion } from "@/lib/utils";
 import MiPerfilHistorial from "@/components/perfil/MiPerfilHistorial";
 import MiPerfilPostgrados from "@/components/perfil/MiPerfilPostgrados";
+import DirectorioToggle from "@/components/perfil/DirectorioToggle";
 
 function calcularTiempoPrimerEmpleo(
   anioRef: number | null | undefined,
@@ -72,7 +73,7 @@ export default async function MiPerfilPage() {
           <Pencil className="w-3.5 h-3.5" /> Editar perfil
         </Link>
       </div>
-
+      <DirectorioToggle inicial={eg.mostrarEnDirectorio ?? false} />
       {/* ── Grid: datos personales + académicos ── */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 

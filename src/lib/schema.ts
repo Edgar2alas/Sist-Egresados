@@ -1,9 +1,9 @@
+import { relations } from "drizzle-orm";
 import {
   pgTable, serial, varchar, text, integer, smallint,
   date, timestamp, boolean, numeric, pgEnum,
-  uniqueIndex, index,
+  uniqueIndex, index, customType,
 } from "drizzle-orm/pg-core";
-import { customType, relations } from "drizzle-orm";
 
 // bytea personalizado para Drizzle
 const bytea = customType<{ data: Buffer; driverData: Buffer }>({
