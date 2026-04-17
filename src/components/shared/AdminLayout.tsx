@@ -4,6 +4,7 @@ import { usePathname, useRouter } from "next/navigation";
 import {
   LayoutDashboard, Users, FileBarChart,
   UserCog, LogOut, GraduationCap, ChevronRight,
+  BookOpen,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -11,6 +12,7 @@ const NAV = [
   { href: "/dashboard",  label: "Dashboard",  icon: LayoutDashboard },
   { href: "/egresados",  label: "Egresados",  icon: Users },
   { href: "/reportes",   label: "Reportes",   icon: FileBarChart },
+  { href: "/postgrados", label: "Postgrados", icon: BookOpen },
   { href: "/usuarios",   label: "Usuarios",   icon: UserCog },
 ];
 
@@ -31,20 +33,45 @@ export default function AdminLayout({
   };
 
   return (
-    <div className="flex h-screen overflow-hidden bg-slate-950">
-      {/* Sidebar */}
-      <aside className="w-60 shrink-0 bg-slate-900 border-r border-slate-800 flex flex-col">
+    <div className="flex h-screen overflow-hidden" style={{ background: "var(--humo)" }}>
+
+      {/* ── Sidebar ──────────────────────────────────────────────────────── */}
+      <aside
+        className="w-60 shrink-0 flex flex-col"
+        style={{
+          background: "var(--marino)",
+          borderRight: "none",
+        }}
+      >
         {/* Logo */}
-        <div className="px-5 py-5 border-b border-slate-800">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 bg-primary-600/20 border border-primary-500/30 rounded-xl
-                            flex items-center justify-center">
-              <GraduationCap className="w-5 h-5 text-primary-400" />
-            </div>
-            <div>
-              <p className="text-white font-bold text-sm leading-tight">Egresados</p>
-              <p className="text-slate-600 text-xs">Administrador</p>
-            </div>
+        <div
+          className="px-5 py-5 flex items-center gap-3"
+          style={{ borderBottom: "1px solid rgba(255,255,255,0.07)" }}
+        >
+          <div
+            className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
+            style={{
+              background: "rgba(0,165,168,0.15)",
+              border: "1px solid rgba(0,165,168,0.30)",
+            }}
+          >
+            <span
+              className="text-lg font-bold"
+              style={{ color: "var(--turquesa)", fontFamily: "'Source Serif 4', serif" }}
+            >
+              σ
+            </span>
+          </div>
+          <div>
+            <p
+              className="font-bold text-sm leading-tight"
+              style={{ color: "white", fontFamily: "'Source Serif 4', serif" }}
+            >
+              Estadística
+            </p>
+            <p className="text-xs leading-tight" style={{ color: "rgba(255,255,255,0.45)" }}>
+              Panel de Administración
+            </p>
           </div>
         </div>
 
@@ -54,41 +81,106 @@ export default function AdminLayout({
             const active = item.href === "/dashboard"
               ? pathname === "/dashboard"
               : pathname.startsWith(item.href);
+
             return (
-              <Link key={item.href} href={item.href}
+              <Link
+                key={item.href}
+                href={item.href}
                 className={cn(
                   "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all group",
-                  active
-                    ? "bg-primary-600/20 text-primary-300 border border-primary-600/25"
-                    : "text-slate-400 hover:text-white hover:bg-slate-800"
-                )}>
-                <item.icon className={cn("w-4 h-4 shrink-0",
-                  active ? "text-primary-400" : "text-slate-500 group-hover:text-slate-400")} />
+                )}
+                style={active ? {
+                  background: "rgba(0,165,168,0.15)",
+                  color: "var(--turquesa)",
+                  border: "1px solid rgba(0,165,168,0.25)",
+                } : {
+                  color: "rgba(255,255,255,0.60)",
+                  border: "1px solid transparent",
+                }}
+                onMouseEnter={e => {
+                  if (!active) {
+                    (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.05)";
+                    (e.currentTarget as HTMLElement).style.color = "rgba(255,255,255,0.90)";
+                  }
+                }}
+                onMouseLeave={e => {
+                  if (!active) {
+                    (e.currentTarget as HTMLElement).style.background = "transparent";
+                    (e.currentTarget as HTMLElement).style.color = "rgba(255,255,255,0.60)";
+                  }
+                }}
+              >
+                <item.icon
+                  className="w-4 h-4 shrink-0"
+                  style={{ color: active ? "var(--turquesa)" : undefined }}
+                />
                 <span className="flex-1">{item.label}</span>
-                {active && <ChevronRight className="w-3 h-3 text-primary-500" />}
+                {active && (
+                  <ChevronRight className="w-3 h-3" style={{ color: "var(--turquesa)" }} />
+                )}
               </Link>
             );
           })}
         </nav>
 
-        {/* Footer */}
-        <div className="p-4 border-t border-slate-800 space-y-2">
+        {/* Footer sidebar */}
+        <div
+          className="p-4 space-y-2"
+          style={{ borderTop: "1px solid rgba(255,255,255,0.07)" }}
+        >
           {correo && (
-            <div className="bg-slate-800/60 rounded-xl px-3 py-2">
-              <p className="text-slate-600 text-xs">Sesión como</p>
-              <p className="text-slate-300 text-xs font-medium truncate">{correo}</p>
+            <div
+              className="rounded-xl px-3 py-2"
+              style={{ background: "rgba(255,255,255,0.05)" }}
+            >
+              <p className="text-xs" style={{ color: "rgba(255,255,255,0.40)" }}>Sesión como</p>
+              <p className="text-xs font-medium truncate" style={{ color: "rgba(255,255,255,0.75)" }}>
+                {correo}
+              </p>
             </div>
           )}
-          <button onClick={logout}
-            className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-sm
-                       text-slate-400 hover:text-red-400 hover:bg-red-500/10 transition-all">
+          <button
+            onClick={logout}
+            className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-sm transition-all"
+            style={{ color: "rgba(255,255,255,0.50)" }}
+            onMouseEnter={e => {
+              (e.currentTarget as HTMLElement).style.background = "rgba(220,38,38,0.10)";
+              (e.currentTarget as HTMLElement).style.color = "#f87171";
+            }}
+            onMouseLeave={e => {
+              (e.currentTarget as HTMLElement).style.background = "transparent";
+              (e.currentTarget as HTMLElement).style.color = "rgba(255,255,255,0.50)";
+            }}
+          >
             <LogOut className="w-4 h-4" /> Cerrar sesión
           </button>
         </div>
       </aside>
 
-      {/* Main */}
+      {/* ── Main content ─────────────────────────────────────────────────── */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+        {/* Top bar */}
+        <div
+          className="h-14 flex items-center justify-between px-6 shrink-0"
+          style={{
+            background: "var(--blanco)",
+            borderBottom: "1px solid var(--borde)",
+            boxShadow: "var(--shadow-sm)",
+          }}
+        >
+          <div />
+          <div
+            className="text-xs px-3 py-1.5 rounded-full font-medium"
+            style={{
+              background: "var(--turquesa-pale)",
+              color: "var(--turquesa-dark)",
+              border: "1px solid rgba(0,165,168,0.20)",
+            }}
+          >
+            ● Sistema en línea
+          </div>
+        </div>
+
         <main className="flex-1 overflow-y-auto p-6 lg:p-8">
           <div className="max-w-7xl mx-auto animate-fade-up">
             {children}

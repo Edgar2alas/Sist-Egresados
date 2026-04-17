@@ -2,92 +2,304 @@
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Lexend:wght@600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,300;0,8..60,400;0,8..60,600;0,8..60,700;1,8..60,400&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap');
 
+/* ── Paleta Institucional — Carrera de Estadística UMSA ─────────────── */
 :root {
-  --font-geist:  'Inter',  sans-serif;
-  --font-cal:    'Lexend', sans-serif;
+  /* Arquitectura base */
+  --blanco:        #FFFFFF;
+  --humo:          #F8FAFC;
+  --borde:         #E2E8F0;
+  --borde-suave:   #EEF2F7;
+
+  /* Texto y legibilidad */
+  --azul-pizarra:  #1E293B;
+  --gris-grafito:  #475569;
+  --placeholder:   #94A3B8;
+
+  /* Paleta institucional */
+  --turquesa:      #00A5A8;
+  --turquesa-dark: #008A8D;
+  --turquesa-light:#E0F7F7;
+  --turquesa-pale: #F0FAFA;
+  --verde:         #1a6b1a;
+  --verde-light:   #E8F5E8;
+  --naranja:       #cc7000;
+  --naranja-light: #FFF3E0;
+
+  /* Azul marino institucional (header/footer) */
+  --marino:        #1E2B3B;
+  --marino-mid:    #243244;
+  --marino-light:  #2D3E52;
+
+  /* Sombras */
+  --shadow-sm:     0 1px 3px rgba(30,41,59,0.06), 0 1px 2px rgba(30,41,59,0.04);
+  --shadow-md:     0 4px 12px rgba(30,41,59,0.08), 0 2px 4px rgba(30,41,59,0.04);
+  --shadow-lg:     0 10px 30px rgba(30,41,59,0.10), 0 4px 8px rgba(30,41,59,0.06);
+  --shadow-turq:   0 4px 16px rgba(0,165,168,0.20);
 }
 
 @layer base {
   * { box-sizing: border-box; }
   body {
-    @apply bg-slate-950 text-slate-200 antialiased;
-    font-family: var(--font-geist);
+    background: var(--humo);
+    color: var(--azul-pizarra);
+    font-family: 'DM Sans', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
-  h1, h2, h3, h4 { font-family: var(--font-cal); }
+  h1, h2, h3 {
+    font-family: 'Source Serif 4', Georgia, serif;
+    letter-spacing: -0.01em;
+  }
   ::-webkit-scrollbar       { width: 5px; height: 5px; }
-  ::-webkit-scrollbar-track { @apply bg-slate-900; }
-  ::-webkit-scrollbar-thumb { @apply bg-slate-700 rounded-full; }
+  ::-webkit-scrollbar-track { background: var(--humo); }
+  ::-webkit-scrollbar-thumb { background: var(--borde); border-radius: 99px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--placeholder); }
 }
 
 @layer components {
-  /* ── Layout ──────────────────────────────────────────────────────────── */
+
+  /* ── Layout ─────────────────────────────────────────────────────────── */
   .page        { @apply space-y-6; }
   .page-header { @apply flex items-center justify-between; }
-  .page-title  { @apply text-2xl font-bold text-white; font-family:var(--font-cal); }
-  .page-sub    { @apply text-slate-500 text-sm mt-0.5; }
+  .page-title  {
+    @apply text-2xl font-bold;
+    font-family: 'Source Serif 4', Georgia, serif;
+    color: var(--azul-pizarra);
+    letter-spacing: -0.02em;
+  }
+  .page-sub    { color: var(--gris-grafito); @apply text-sm mt-0.5; }
 
   /* ── Cards ───────────────────────────────────────────────────────────── */
-  .card        { @apply bg-slate-900 border border-slate-800 rounded-2xl p-6; }
-  .card-sm     { @apply bg-slate-900 border border-slate-800 rounded-xl p-4; }
-  .card-hover  { @apply card transition-all duration-200 hover:border-slate-700 hover:bg-slate-800/60; }
-
-  /* ── Form ────────────────────────────────────────────────────────────── */
-  .field       {
-    @apply w-full bg-slate-800/80 border border-slate-700 rounded-xl px-4 py-2.5
-           text-sm text-slate-100 placeholder-slate-500
-           focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent
-           transition-all disabled:opacity-50 disabled:cursor-not-allowed;
+  .card {
+    background: var(--blanco);
+    border: 1px solid var(--borde);
+    @apply rounded-2xl p-6;
+    box-shadow: var(--shadow-sm);
   }
-  .field-err   { @apply border-red-500 focus:ring-red-500; }
-  .label       { @apply block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1.5; }
-  .hint        { @apply mt-1 text-xs text-red-400; }
-  .error-box   { @apply bg-red-500/10 border border-red-500/25 rounded-xl px-4 py-3 text-red-400 text-sm; }
+  .card-sm {
+    background: var(--blanco);
+    border: 1px solid var(--borde);
+    @apply rounded-xl p-4;
+    box-shadow: var(--shadow-sm);
+  }
+  .card-hover {
+    background: var(--blanco);
+    border: 1px solid var(--borde);
+    @apply rounded-2xl p-6 transition-all duration-200;
+    box-shadow: var(--shadow-sm);
+  }
+  .card-hover:hover {
+    border-color: var(--turquesa);
+    box-shadow: var(--shadow-turq);
+    transform: translateY(-1px);
+  }
 
-  /* ── Buttons ─────────────────────────────────────────────────────────── */
-  .btn         {
+  /* ── Formulario ──────────────────────────────────────────────────────── */
+  .field {
+    @apply w-full rounded-xl px-4 py-2.5 text-sm transition-all;
+    background: var(--humo);
+    border: 1.5px solid var(--borde);
+    color: var(--azul-pizarra);
+    outline: none;
+  }
+  .field::placeholder { color: var(--placeholder); }
+  .field:focus {
+    background: var(--blanco);
+    border-color: var(--turquesa);
+    box-shadow: 0 0 0 3px rgba(0,165,168,0.12);
+  }
+  .field:disabled { opacity: 0.5; cursor: not-allowed; }
+  .field-err { border-color: #dc2626 !important; }
+  .field-err:focus { box-shadow: 0 0 0 3px rgba(220,38,38,0.12) !important; }
+
+  .label {
+    @apply block text-xs font-semibold uppercase tracking-wide mb-1.5;
+    color: var(--gris-grafito);
+  }
+  .hint  { @apply mt-1 text-xs; color: #dc2626; }
+  .error-box {
+    background: #FEF2F2;
+    border: 1px solid #FECACA;
+    @apply rounded-xl px-4 py-3 text-sm;
+    color: #dc2626;
+  }
+  .success-box {
+    background: var(--verde-light);
+    border: 1px solid #86efac;
+    @apply rounded-xl px-4 py-3 text-sm;
+    color: var(--verde);
+  }
+
+  /* ── Botones ─────────────────────────────────────────────────────────── */
+  .btn {
     @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5
            text-sm font-semibold transition-all duration-150
            disabled:opacity-50 disabled:cursor-not-allowed
-           focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-950;
+           focus:outline-none focus:ring-2 focus:ring-offset-2;
   }
-  .btn-primary { @apply btn bg-primary-600 text-white hover:bg-primary-500 focus:ring-primary-500 active:scale-95; }
-  .btn-slate   { @apply btn bg-slate-800 text-slate-200 border border-slate-700 hover:bg-slate-700 focus:ring-slate-600; }
-  .btn-danger  { @apply btn bg-red-500/10 text-red-400 border border-red-500/25 hover:bg-red-500/20 focus:ring-red-500; }
-  .btn-ghost   { @apply btn text-slate-400 hover:text-white hover:bg-slate-800 focus:ring-slate-600; }
-  .btn-sm      { @apply px-3 py-2 text-xs rounded-lg; }
-  .btn-xs      { @apply px-2.5 py-1.5 text-xs rounded-lg; }
+  .btn-primary {
+    @apply btn;
+    background: var(--turquesa);
+    color: var(--blanco);
+    box-shadow: var(--shadow-turq);
+    focus-ring-color: var(--turquesa);
+  }
+  .btn-primary:hover:not(:disabled) {
+    background: var(--turquesa-dark);
+    box-shadow: 0 6px 20px rgba(0,165,168,0.30);
+    transform: translateY(-1px);
+  }
+  .btn-primary:active { transform: translateY(0); }
+  .btn-primary { @apply focus:ring-[#00A5A8]; }
+
+  .btn-slate {
+    @apply btn;
+    background: var(--humo);
+    color: var(--azul-pizarra);
+    border: 1.5px solid var(--borde);
+    @apply focus:ring-gray-300;
+  }
+  .btn-slate:hover:not(:disabled) {
+    background: var(--borde-suave);
+    border-color: var(--placeholder);
+  }
+
+  .btn-danger {
+    @apply btn;
+    background: #FEF2F2;
+    color: #dc2626;
+    border: 1.5px solid #FECACA;
+    @apply focus:ring-red-300;
+  }
+  .btn-danger:hover:not(:disabled) { background: #FEE2E2; }
+
+  .btn-ghost {
+    @apply btn;
+    color: var(--gris-grafito);
+    @apply focus:ring-gray-300;
+  }
+  .btn-ghost:hover:not(:disabled) {
+    background: var(--humo);
+    color: var(--azul-pizarra);
+  }
+
+  .btn-marino {
+    @apply btn;
+    background: var(--marino);
+    color: var(--blanco);
+    @apply focus:ring-slate-500;
+  }
+  .btn-marino:hover:not(:disabled) { background: var(--marino-mid); }
+
+  .btn-outline {
+    @apply btn;
+    background: transparent;
+    color: var(--turquesa);
+    border: 1.5px solid var(--turquesa);
+    @apply focus:ring-[#00A5A8];
+  }
+  .btn-outline:hover:not(:disabled) {
+    background: var(--turquesa-pale);
+  }
+
+  .btn-sm  { @apply px-3 py-2 text-xs rounded-lg; }
+  .btn-xs  { @apply px-2.5 py-1.5 text-xs rounded-lg; }
 
   /* ── Badges ──────────────────────────────────────────────────────────── */
   .badge       { @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold; }
-  .badge-green { @apply badge bg-emerald-500/15 text-emerald-400 border border-emerald-500/25; }
-  .badge-red   { @apply badge bg-red-500/15 text-red-400 border border-red-500/25; }
-  .badge-amber { @apply badge bg-amber-500/15 text-amber-400 border border-amber-500/25; }
-  .badge-blue  { @apply badge bg-blue-500/15 text-blue-400 border border-blue-500/25; }
-  .badge-slate { @apply badge bg-slate-700 text-slate-400; }
+  .badge-green {
+    background: var(--verde-light);
+    color: var(--verde);
+    border: 1px solid #86efac;
+  }
+  .badge-red   { @apply badge bg-red-50 text-red-600 border border-red-200; }
+  .badge-amber {
+    background: var(--naranja-light);
+    color: var(--naranja);
+    border: 1px solid #fed7aa;
+  }
+  .badge-blue  { @apply badge bg-blue-50 text-blue-600 border border-blue-200; }
+  .badge-slate { @apply badge bg-gray-100 text-gray-500 border border-gray-200; }
+  .badge-turq  {
+    background: var(--turquesa-light);
+    color: var(--turquesa-dark);
+    border: 1px solid #99e6e7;
+  }
 
-  /* ── Table ───────────────────────────────────────────────────────────── */
-  .tbl-wrap    { @apply overflow-x-auto rounded-2xl border border-slate-800; }
-  .tbl         { @apply w-full text-sm text-left; }
-  .tbl thead   { @apply bg-slate-800/70 text-slate-500 text-xs uppercase tracking-widest; }
-  .tbl thead th { @apply px-5 py-3 font-semibold whitespace-nowrap; }
-  .tbl tbody tr { @apply border-t border-slate-800 hover:bg-slate-800/30 transition-colors; }
-  .tbl tbody td { @apply px-5 py-3.5 text-slate-300; }
+  /* ── Tabla ───────────────────────────────────────────────────────────── */
+  .tbl-wrap {
+    overflow-x: auto;
+    @apply rounded-2xl;
+    border: 1px solid var(--borde);
+    box-shadow: var(--shadow-sm);
+  }
+  .tbl { @apply w-full text-sm text-left; background: var(--blanco); }
+  .tbl thead {
+    border-bottom: 1.5px solid var(--borde);
+  }
+  .tbl thead tr { background: var(--humo); }
+  .tbl thead th {
+    @apply px-5 py-3.5 font-semibold text-xs uppercase tracking-widest whitespace-nowrap;
+    color: var(--gris-grafito);
+  }
+  .tbl tbody tr {
+    border-top: 1px solid var(--borde-suave);
+    transition: background 0.1s;
+  }
+  .tbl tbody tr:hover { background: var(--turquesa-pale); }
+  .tbl tbody td { @apply px-5 py-3.5; color: var(--azul-pizarra); }
 
   /* ── Spinner ─────────────────────────────────────────────────────────── */
-  .spinner     { @apply w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin; }
+  .spinner { @apply w-4 h-4 border-2 rounded-full animate-spin; border-color: rgba(255,255,255,0.3); border-top-color: white; }
+  .spinner-turq { @apply w-4 h-4 border-2 rounded-full animate-spin; border-color: var(--turquesa-light); border-top-color: var(--turquesa); }
 
   /* ── Stat card ───────────────────────────────────────────────────────── */
-  .stat-card   { @apply card flex items-center gap-4; }
-  .stat-icon   { @apply p-3 rounded-xl; }
-  .stat-val    { @apply text-2xl font-bold text-white; font-family:var(--font-cal); }
-  .stat-label  { @apply text-slate-500 text-xs font-medium uppercase tracking-wide mt-0.5; }
+  .stat-card {
+    background: var(--blanco);
+    border: 1px solid var(--borde);
+    @apply rounded-2xl p-6 flex items-center gap-4;
+    box-shadow: var(--shadow-sm);
+    transition: all 0.2s;
+  }
+  .stat-card:hover {
+    border-color: var(--turquesa);
+    box-shadow: var(--shadow-turq);
+    transform: translateY(-1px);
+  }
+  .stat-icon { @apply p-3 rounded-xl; }
+  .stat-val  {
+    @apply text-2xl font-bold;
+    font-family: 'Source Serif 4', Georgia, serif;
+    color: var(--azul-pizarra);
+  }
+  .stat-label { @apply text-xs font-medium uppercase tracking-wide mt-0.5; color: var(--gris-grafito); }
+
+  /* ── Divider ─────────────────────────────────────────────────────────── */
+  .divider { border: none; border-top: 1px solid var(--borde); @apply my-6; }
 }
 
 @layer utilities {
-  .animate-fade-up { animation: fadeUp .3s ease-out both; }
-  .animate-fade-in { animation: fadeIn .2s ease-out both; }
-  @keyframes fadeUp { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }
-  @keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
+  .animate-fade-up  { animation: fadeUp  .35s cubic-bezier(.16,1,.3,1) both; }
+  .animate-fade-in  { animation: fadeIn  .25s ease-out both; }
+  .animate-slide-in { animation: slideIn .3s cubic-bezier(.16,1,.3,1) both; }
+
+  @keyframes fadeUp  { from { opacity:0; transform:translateY(14px); } to { opacity:1; transform:translateY(0); } }
+  @keyframes fadeIn  { from { opacity:0; } to { opacity:1; } }
+  @keyframes slideIn { from { opacity:0; transform:translateX(-12px); } to { opacity:1; transform:translateX(0); } }
+
+  /* Stagger helpers */
+  .delay-1 { animation-delay: .05s; }
+  .delay-2 { animation-delay: .10s; }
+  .delay-3 { animation-delay: .15s; }
+  .delay-4 { animation-delay: .20s; }
+  .delay-5 { animation-delay: .25s; }
+
+  /* Turquesa utilities */
+  .text-turquesa      { color: var(--turquesa); }
+  .text-marino        { color: var(--marino); }
+  .bg-turquesa        { background: var(--turquesa); }
+  .bg-marino          { background: var(--marino); }
+  .border-turquesa    { border-color: var(--turquesa); }
 }

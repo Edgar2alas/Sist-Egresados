@@ -1,0 +1,586 @@
+"use client";
+import { useState, useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { loginSchema, type LoginInput } from "@/lib/validations";
+import {
+  Eye, EyeOff, LogIn, X, ChevronRight,
+  TrendingUp, Users, Briefcase, Award,
+  Star, ArrowRight, Search, MapPin, Phone, Mail,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
+
+/* ─── Modal de login ────────────────────────────────────────────────────── */
+function LoginModal({ onClose }: { onClose: () => void }) {
+  const router = useRouter();
+  const [show,  setShow]  = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const overlayRef = useRef<HTMLDivElement>(null);
+
+  const { register, handleSubmit, formState: { errors, isSubmitting } } =
+    useForm<LoginInput>({ resolver: zodResolver(loginSchema) });
+
+  // Cerrar con Escape
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    document.addEventListener("keydown", onKey);
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.body.style.overflow = "";
+    };
+  }, [onClose]);
+
+  const onSubmit = async (d: LoginInput) => {
+    setError(null);
+    const res  = await fetch("/api/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(d),
+    });
+    const json = await res.json();
+    if (!res.ok) { setError(json.error); return; }
+
+    if (json.data?.primerLogin) {
+      router.push(`/activar-cuenta?correo=${encodeURIComponent(d.correo)}`);
+      return;
+    }
+    router.push(json.data.rol === "admin" ? "/dashboard" : "/mi-perfil");
+    router.refresh();
+  };
+
+  return (
+    /* Overlay */
+    <div
+      ref={overlayRef}
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ background: "rgba(30,43,59,0.70)", backdropFilter: "blur(4px)" }}
+      onClick={e => { if (e.target === overlayRef.current) onClose(); }}
+    >
+      {/* Panel */}
+      <div
+        className="w-full max-w-md rounded-3xl overflow-hidden animate-fade-up"
+        style={{
+          background: "var(--blanco)",
+          boxShadow: "0 25px 60px rgba(30,43,59,0.25), 0 10px 20px rgba(30,43,59,0.10)",
+        }}
+      >
+        {/* Header modal */}
+        <div
+          className="px-8 py-6 flex items-center justify-between"
+          style={{ background: "var(--marino)", borderBottom: "1px solid rgba(255,255,255,0.07)" }}
+        >
+          <div>
+            <p
+              className="text-white font-bold text-lg"
+              style={{ fontFamily: "'Source Serif 4', serif" }}
+            >
+              Acceso Egresados
+            </p>
+            <p className="text-sm" style={{ color: "rgba(255,255,255,0.55)" }}>
+              Sistema de Seguimiento · UMSA
+            </p>
+          </div>
+          <button
+            onClick={onClose}
+            className="w-8 h-8 flex items-center justify-center rounded-xl transition-colors"
+            style={{ color: "rgba(255,255,255,0.55)", background: "rgba(255,255,255,0.07)" }}
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        {/* Body modal */}
+        <div className="px-8 py-7">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+            <div>
+              <label className="label">Correo electrónico</label>
+              <input
+                {...register("correo")}
+                type="email"
+                autoComplete="email"
+                autoFocus
+                placeholder="tu@correo.com"
+                className={cn("field", errors.correo && "field-err")}
+              />
+              {errors.correo && <p className="hint">{errors.correo.message}</p>}
+            </div>
+
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="label mb-0">Contraseña</label>
+                <a
+                  href="/recuperar-password"
+                  className="text-xs font-medium transition-colors"
+                  style={{ color: "var(--turquesa)" }}
+                >
+                  ¿Olvidaste tu contraseña?
+                </a>
+              </div>
+              <div className="relative">
+                <input
+                  {...register("password")}
+                  type={show ? "text" : "password"}
+                  autoComplete="current-password"
+                  placeholder="••••••••"
+                  className={cn("field pr-10", errors.password && "field-err")}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShow(!show)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 transition-colors"
+                  style={{ color: "var(--placeholder)" }}
+                >
+                  {show ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+              {errors.password && <p className="hint">{errors.password.message}</p>}
+            </div>
+
+            {error && <p className="error-box">{error}</p>}
+
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="btn-primary w-full py-3 mt-2"
+            >
+              {isSubmitting
+                ? <><span className="spinner" /> Ingresando...</>
+                : <><LogIn className="w-4 h-4" /> Ingresar</>}
+            </button>
+          </form>
+
+          {/* Nota informativa */}
+          <div
+            className="mt-5 rounded-xl px-4 py-3 text-xs"
+            style={{
+              background: "var(--turquesa-pale)",
+              border: "1px solid rgba(0,165,168,0.15)",
+              color: "var(--grafito)",
+            }}
+          >
+            <strong style={{ color: "var(--turquesa-dark)" }}>¿Primera vez?</strong>{" "}
+            Tu cuenta fue creada por la carrera. Tu contraseña inicial es tu número de CI.
+            Al ingresar, podrás actualizarla.
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ─── Tarjeta de egresado (directorio preview) ─────────────────────────── */
+function EgresadoCard({ nombres, cargo, empresa, ciudad, plan, initials }: {
+  nombres: string; cargo: string; empresa: string;
+  ciudad: string; plan: string; initials: string;
+}) {
+  return (
+    <div
+      className="rounded-2xl p-5 transition-all duration-200 hover:-translate-y-0.5"
+      style={{
+        background: "var(--blanco)",
+        border: "1px solid var(--borde)",
+        boxShadow: "var(--shadow-sm)",
+      }}
+    >
+      <div className="flex items-start gap-3">
+        <div
+          className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 font-bold text-sm"
+          style={{ background: "var(--turquesa-light)", color: "var(--turquesa-dark)" }}
+        >
+          {initials}
+        </div>
+        <div className="min-w-0">
+          <p className="font-semibold text-sm truncate" style={{ color: "var(--azul-pizarra)" }}>
+            {nombres}
+          </p>
+          <p className="text-xs truncate" style={{ color: "var(--grafito)" }}>{cargo}</p>
+          <p className="text-xs truncate" style={{ color: "var(--placeholder)" }}>{empresa}</p>
+        </div>
+      </div>
+      <div className="flex flex-wrap gap-1.5 mt-3">
+        {ciudad && (
+          <span
+            className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full"
+            style={{ background: "var(--humo)", color: "var(--grafito)", border: "1px solid var(--borde)" }}
+          >
+            <MapPin className="w-3 h-3" /> {ciudad}
+          </span>
+        )}
+        <span
+          className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full"
+          style={{ background: "var(--turquesa-pale)", color: "var(--turquesa-dark)", border: "1px solid rgba(0,165,168,0.15)" }}
+        >
+          Plan {plan}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+/* ─── Página principal ──────────────────────────────────────────────────── */
+const EGRESADOS_DEMO = [
+  { nombres: "Ana M. Quispe Mamani",   cargo: "Estadística Senior",   empresa: "INE Bolivia",         ciudad: "La Paz",       plan: "2020", initials: "AQ" },
+  { nombres: "Carlos A. Flores Díaz",  cargo: "Analista de Datos",    empresa: "Banco Central",       ciudad: "La Paz",       plan: "2008", initials: "CF" },
+  { nombres: "María E. Condori López", cargo: "Investigadora",        empresa: "UDAPE",               ciudad: "La Paz",       plan: "2020", initials: "MC" },
+  { nombres: "Jorge R. Mamani Ticona", cargo: "Consultor Estadístico", empresa: "PNUD Bolivia",       ciudad: "Cochabamba",   plan: "2008", initials: "JM" },
+  { nombres: "Lucía P. Vargas Ramos",  cargo: "Data Scientist",       empresa: "Empresa Privada",     ciudad: "Santa Cruz",   plan: "2020", initials: "LV" },
+  { nombres: "Roberto C. Pinto Alva",  cargo: "Docente Universitario", empresa: "UMSA",               ciudad: "La Paz",       plan: "1994", initials: "RP" },
+];
+
+const STATS = [
+  { icon: Users,    value: "300+",  label: "Egresados registrados" },
+  { icon: Briefcase,value: "78%",   label: "Con empleo activo" },
+  { icon: TrendingUp,value: "45%",  label: "En sector público" },
+  { icon: Award,    value: "12+",   label: "Con postgrado" },
+];
+
+export default function LandingLoginPage() {
+  const [modalOpen, setModalOpen] = useState(false);
+
+  return (
+    <>
+      {modalOpen && <LoginModal onClose={() => setModalOpen(false)} />}
+
+      {/* ── HERO ─────────────────────────────────────────────────────────── */}
+      <section
+        className="relative overflow-hidden"
+        style={{
+          background: `linear-gradient(135deg, var(--marino) 0%, #1a3555 60%, #0f2440 100%)`,
+          minHeight: "calc(100vh - 64px)",
+        }}
+      >
+        {/* Decoración de fondo — curvas estadísticas */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <svg
+            className="absolute top-0 right-0 w-[600px] opacity-[0.04]"
+            viewBox="0 0 600 600"
+            fill="none"
+          >
+            <circle cx="400" cy="200" r="300" stroke="white" strokeWidth="1" />
+            <circle cx="400" cy="200" r="200" stroke="white" strokeWidth="1" />
+            <circle cx="400" cy="200" r="100" stroke="white" strokeWidth="1" />
+            <line x1="0" y1="200" x2="600" y2="200" stroke="white" strokeWidth="0.5" />
+            <line x1="400" y1="0" x2="400" y2="600" stroke="white" strokeWidth="0.5" />
+          </svg>
+          {/* Curva de gauss */}
+          <svg
+            className="absolute bottom-0 left-0 w-full opacity-[0.06]"
+            viewBox="0 0 1400 200"
+            preserveAspectRatio="none"
+          >
+            <path
+              d="M0,200 C100,200 200,20 350,20 C500,20 550,180 700,180 C850,180 900,20 1050,20 C1200,20 1300,200 1400,200 Z"
+              fill="white"
+            />
+          </svg>
+        </div>
+
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 lg:py-28">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+
+            {/* Texto izquierda */}
+            <div className="animate-fade-up">
+              <div
+                className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold mb-6"
+                style={{
+                  background: "rgba(0,165,168,0.15)",
+                  color: "var(--turquesa)",
+                  border: "1px solid rgba(0,165,168,0.25)",
+                }}
+              >
+                <span className="w-1.5 h-1.5 rounded-full bg-current animate-pulse" />
+                Sistema de Seguimiento de Egresados
+              </div>
+
+              <h1
+                className="text-4xl lg:text-5xl font-bold text-white leading-tight mb-6"
+                style={{ fontFamily: "'Source Serif 4', serif", letterSpacing: "-0.02em" }}
+              >
+                Conectamos egresados,{" "}
+                <span style={{ color: "var(--turquesa)" }}>impulsamos carreras</span>
+              </h1>
+
+              <p className="text-lg mb-8 leading-relaxed" style={{ color: "rgba(255,255,255,0.65)" }}>
+                La Carrera de Estadística mantiene un directorio actualizado de sus egresados.
+                Mantén tu perfil al día y aparece en nuestro directorio — visible para empleadores
+                y colegas del área.
+              </p>
+
+              <div className="flex flex-col sm:flex-row gap-3">
+                <button
+                  onClick={() => setModalOpen(true)}
+                  className="flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl font-semibold text-sm transition-all"
+                  style={{
+                    background: "var(--turquesa)",
+                    color: "white",
+                    boxShadow: "0 4px 20px rgba(0,165,168,0.35)",
+                  }}
+                  onMouseEnter={e => {
+                    (e.currentTarget as HTMLElement).style.background = "var(--turquesa-dark)";
+                    (e.currentTarget as HTMLElement).style.transform = "translateY(-1px)";
+                    (e.currentTarget as HTMLElement).style.boxShadow = "0 6px 24px rgba(0,165,168,0.45)";
+                  }}
+                  onMouseLeave={e => {
+                    (e.currentTarget as HTMLElement).style.background = "var(--turquesa)";
+                    (e.currentTarget as HTMLElement).style.transform = "translateY(0)";
+                    (e.currentTarget as HTMLElement).style.boxShadow = "0 4px 20px rgba(0,165,168,0.35)";
+                  }}
+                >
+                  <LogIn className="w-4 h-4" />
+                  Soy egresado — Acceder
+                </button>
+                <a
+                  href="#directorio"
+                  className="flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl font-semibold text-sm transition-all"
+                  style={{
+                    background: "rgba(255,255,255,0.08)",
+                    color: "rgba(255,255,255,0.85)",
+                    border: "1px solid rgba(255,255,255,0.12)",
+                  }}
+                  onMouseEnter={e => {
+                    (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.12)";
+                  }}
+                  onMouseLeave={e => {
+                    (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.08)";
+                  }}
+                >
+                  <Search className="w-4 h-4" />
+                  Ver directorio
+                </a>
+              </div>
+            </div>
+
+            {/* Stats derechas */}
+            <div className="grid grid-cols-2 gap-4 animate-fade-up delay-2">
+              {STATS.map(({ icon: Icon, value, label }, i) => (
+                <div
+                  key={i}
+                  className="rounded-2xl p-5"
+                  style={{
+                    background: "rgba(255,255,255,0.06)",
+                    border: "1px solid rgba(255,255,255,0.10)",
+                    backdropFilter: "blur(10px)",
+                  }}
+                >
+                  <div
+                    className="w-10 h-10 rounded-xl flex items-center justify-center mb-3"
+                    style={{ background: "rgba(0,165,168,0.15)" }}
+                  >
+                    <Icon className="w-5 h-5" style={{ color: "var(--turquesa)" }} />
+                  </div>
+                  <p
+                    className="text-3xl font-bold text-white mb-1"
+                    style={{ fontFamily: "'Source Serif 4', serif" }}
+                  >
+                    {value}
+                  </p>
+                  <p className="text-xs" style={{ color: "rgba(255,255,255,0.55)" }}>
+                    {label}
+                  </p>
+                </div>
+              ))}
+            </div>
+
+          </div>
+        </div>
+      </section>
+
+      {/* ── POR QUÉ ACTUALIZAR TU PERFIL ─────────────────────────────────── */}
+      <section className="py-20" style={{ background: "var(--blanco)" }}>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-14">
+            <span
+              className="inline-block px-3 py-1 rounded-full text-xs font-semibold mb-4"
+              style={{ background: "var(--turquesa-light)", color: "var(--turquesa-dark)" }}
+            >
+              ¿Por qué actualizarlo?
+            </span>
+            <h2
+              className="text-3xl font-bold mb-4"
+              style={{ color: "var(--azul-pizarra)", fontFamily: "'Source Serif 4', serif" }}
+            >
+              Tu perfil actualizado te abre puertas
+            </h2>
+            <p className="text-base max-w-xl mx-auto" style={{ color: "var(--grafito)" }}>
+              Un directorio activo beneficia a toda la comunidad de estadísticos de la UMSA.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {[
+              {
+                icon: "🔍",
+                title: "Visibilidad profesional",
+                desc: "Tu perfil aparece en el directorio público. Empleadores y proyectos pueden encontrarte directamente.",
+                highlight: "Más arriba si tu perfil está completo",
+              },
+              {
+                icon: "🤝",
+                title: "Red de egresados",
+                desc: "Conecta con colegas que ya ejercen en tu área. Colaboraciones, referencias y oportunidades laborales.",
+                highlight: "Comunidad activa de estadísticos",
+              },
+              {
+                icon: "📊",
+                title: "Ayudas a la carrera",
+                desc: "Los datos de empleabilidad ayudan a mejorar la currícula y los programas de formación.",
+                highlight: "Impacto real en generaciones futuras",
+              },
+            ].map(({ icon, title, desc, highlight }, i) => (
+              <div
+                key={i}
+                className="rounded-2xl p-6 transition-all duration-200 hover:-translate-y-1"
+                style={{
+                  background: "var(--humo)",
+                  border: "1px solid var(--borde)",
+                  boxShadow: "var(--shadow-sm)",
+                }}
+              >
+                <span className="text-3xl mb-4 block">{icon}</span>
+                <h3
+                  className="font-bold text-lg mb-2"
+                  style={{ color: "var(--azul-pizarra)", fontFamily: "'Source Serif 4', serif" }}
+                >
+                  {title}
+                </h3>
+                <p className="text-sm mb-4 leading-relaxed" style={{ color: "var(--grafito)" }}>
+                  {desc}
+                </p>
+                <div
+                  className="flex items-center gap-1.5 text-xs font-semibold"
+                  style={{ color: "var(--turquesa-dark)" }}
+                >
+                  <Star className="w-3.5 h-3.5" />
+                  {highlight}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* CTA central */}
+          <div className="text-center mt-12">
+            <button
+              onClick={() => setModalOpen(true)}
+              className="inline-flex items-center gap-2 px-8 py-4 rounded-xl font-semibold text-sm transition-all"
+              style={{
+                background: "var(--marino)",
+                color: "white",
+                boxShadow: "0 4px 16px rgba(30,43,59,0.20)",
+              }}
+              onMouseEnter={e => {
+                (e.currentTarget as HTMLElement).style.background = "var(--marino-mid)";
+                (e.currentTarget as HTMLElement).style.transform = "translateY(-1px)";
+              }}
+              onMouseLeave={e => {
+                (e.currentTarget as HTMLElement).style.background = "var(--marino)";
+                (e.currentTarget as HTMLElement).style.transform = "translateY(0)";
+              }}
+            >
+              Actualizar mi perfil ahora
+              <ArrowRight className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      </section>
+
+      {/* ── DIRECTORIO PREVIEW ───────────────────────────────────────────── */}
+      <section id="directorio" className="py-20" style={{ background: "var(--humo)" }}>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-10">
+            <div>
+              <span
+                className="inline-block px-3 py-1 rounded-full text-xs font-semibold mb-3"
+                style={{ background: "var(--turquesa-light)", color: "var(--turquesa-dark)" }}
+              >
+                Directorio público
+              </span>
+              <h2
+                className="text-3xl font-bold"
+                style={{ color: "var(--azul-pizarra)", fontFamily: "'Source Serif 4', serif" }}
+              >
+                Egresados destacados
+              </h2>
+              <p className="text-sm mt-1" style={{ color: "var(--grafito)" }}>
+                Estadísticos de la UMSA que ejercen en todo el país
+              </p>
+            </div>
+            <a
+              href="/directorio"
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold shrink-0 transition-all"
+              style={{
+                background: "var(--blanco)",
+                color: "var(--azul-pizarra)",
+                border: "1.5px solid var(--borde)",
+                boxShadow: "var(--shadow-sm)",
+              }}
+              onMouseEnter={e => {
+                (e.currentTarget as HTMLElement).style.borderColor = "var(--turquesa)";
+                (e.currentTarget as HTMLElement).style.color = "var(--turquesa-dark)";
+              }}
+              onMouseLeave={e => {
+                (e.currentTarget as HTMLElement).style.borderColor = "var(--borde)";
+                (e.currentTarget as HTMLElement).style.color = "var(--azul-pizarra)";
+              }}
+            >
+              Ver directorio completo
+              <ChevronRight className="w-4 h-4" />
+            </a>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {EGRESADOS_DEMO.map((eg, i) => (
+              <div key={i} className={cn("animate-fade-up", `delay-${Math.min(i + 1, 5)}`)}>
+                <EgresadoCard {...eg} />
+              </div>
+            ))}
+          </div>
+
+          {/* Incentivo para actualizar */}
+          <div
+            className="mt-10 rounded-2xl p-8 flex flex-col sm:flex-row items-center gap-6"
+            style={{
+              background: `linear-gradient(135deg, var(--marino) 0%, #1a3555 100%)`,
+              border: "1px solid rgba(0,165,168,0.20)",
+            }}
+          >
+            <div className="flex-1 text-center sm:text-left">
+              <h3
+                className="text-xl font-bold text-white mb-2"
+                style={{ fontFamily: "'Source Serif 4', serif" }}
+              >
+                ¿Eres egresado o titulado de la carrera?
+              </h3>
+              <p className="text-sm" style={{ color: "rgba(255,255,255,0.65)" }}>
+                Aparece en este directorio. Los perfiles actualizados se muestran primero
+                y son más visibles para empleadores y proyectos de investigación.
+              </p>
+            </div>
+            <button
+              onClick={() => setModalOpen(true)}
+              className="flex items-center gap-2 px-6 py-3 rounded-xl font-semibold text-sm shrink-0 transition-all"
+              style={{
+                background: "var(--turquesa)",
+                color: "white",
+                boxShadow: "0 4px 16px rgba(0,165,168,0.35)",
+              }}
+              onMouseEnter={e => {
+                (e.currentTarget as HTMLElement).style.background = "var(--turquesa-dark)";
+                (e.currentTarget as HTMLElement).style.transform = "scale(1.02)";
+              }}
+              onMouseLeave={e => {
+                (e.currentTarget as HTMLElement).style.background = "var(--turquesa)";
+                (e.currentTarget as HTMLElement).style.transform = "scale(1)";
+              }}
+            >
+              <LogIn className="w-4 h-4" />
+              Unirme al directorio
+            </button>
+          </div>
+        </div>
+      </section>
+    </>
+  );
+}
