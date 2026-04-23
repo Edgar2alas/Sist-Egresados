@@ -24,17 +24,15 @@ export default function HistorialForm({ idEgresado, historial, onSuccess }: Prop
   const [esActual, setEsActual] = useState(historial ? historial.fechaFin === null : false);
   const [archivo,  setArchivo]  = useState<File | null>(null);
 
-  // Valores del formulario (controlado simple — sin react-hook-form para soportar FormData)
   const [form, setForm] = useState({
-    empresa:           historial?.empresa           ?? "",
-    cargo:             historial?.cargo             ?? "",
-    area:              historial?.area              ?? "",
-    tipoContrato:      historial?.tipoContrato      ?? "",
-    ciudad:            historial?.ciudad            ?? "",
-    sector:            historial?.sector            ?? "",
-    ingresoAproximado: historial?.ingresoAproximado ?? "",
-    fechaInicio:       historial?.fechaInicio?.split("T")[0] ?? historial?.fechaInicio ?? "",
-    fechaFin:          historial?.fechaFin?.split("T")[0]   ?? historial?.fechaFin   ?? "",
+    empresa:      historial?.empresa      ?? "",
+    cargo:        historial?.cargo        ?? "",
+    area:         historial?.area         ?? "",
+    tipoContrato: historial?.tipoContrato ?? "",
+    ciudad:       historial?.ciudad       ?? "",
+    sector:       historial?.sector       ?? "",
+    fechaInicio:  historial?.fechaInicio?.split("T")[0] ?? historial?.fechaInicio ?? "",
+    fechaFin:     historial?.fechaFin?.split("T")[0]   ?? historial?.fechaFin   ?? "",
   });
 
   const set = (k: string, v: string) => setForm(f => ({ ...f, [k]: v }));
@@ -71,7 +69,6 @@ export default function HistorialForm({ idEgresado, historial, onSuccess }: Prop
       fd.append("tipoContrato",       form.tipoContrato);
       fd.append("ciudad",             form.ciudad);
       fd.append("sector",             form.sector);
-      fd.append("ingresoAproximado",  form.ingresoAproximado);
       fd.append("fechaInicio",        form.fechaInicio);
       fd.append("fechaFin",           esActual ? "" : form.fechaFin);
       fd.append("actualmenteTrabaja", String(esActual));
@@ -86,8 +83,6 @@ export default function HistorialForm({ idEgresado, historial, onSuccess }: Prop
       else { router.push("/mi-perfil"); router.refresh(); }
     } finally { setLoading(false); }
   };
-
-  const f = (val: string) => cn("field", !val && "");
 
   return (
     <form onSubmit={onSubmit} className="space-y-5">
@@ -146,30 +141,15 @@ export default function HistorialForm({ idEgresado, historial, onSuccess }: Prop
         </div>
       </div>
 
-      {/* Ingreso + Fecha inicio */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label className="label">Ingreso Aproximado (Bs.)</label>
-          <input
-            type="number"
-            min="0"
-            step="100"
-            value={form.ingresoAproximado}
-            onChange={e => set("ingresoAproximado", e.target.value)}
-            placeholder="Opcional"
-            className="field"
-          />
-          <p className="text-xs mt-1" style={{ color: "var(--placeholder)" }}>Campo opcional y confidencial</p>
-        </div>
-        <div>
-          <label className="label">Fecha de Inicio <span className="text-red-500">*</span></label>
-          <input
-            type="date"
-            value={form.fechaInicio}
-            onChange={e => set("fechaInicio", e.target.value)}
-            className="field"
-          />
-        </div>
+      {/* Fecha inicio */}
+      <div className="max-w-xs">
+        <label className="label">Fecha de Inicio <span className="text-red-500">*</span></label>
+        <input
+          type="date"
+          value={form.fechaInicio}
+          onChange={e => set("fechaInicio", e.target.value)}
+          className="field"
+        />
       </div>
 
       {/* Toggle actualmente trabaja */}
@@ -177,9 +157,7 @@ export default function HistorialForm({ idEgresado, historial, onSuccess }: Prop
         <label className="flex items-center gap-3 cursor-pointer select-none">
           <div
             onClick={() => setEsActual(v => !v)}
-            className={cn(
-              "w-10 h-6 rounded-full relative transition-colors cursor-pointer",
-            )}
+            className="w-10 h-6 rounded-full relative transition-colors cursor-pointer"
             style={{ background: esActual ? "var(--verde)" : "var(--borde)" }}
           >
             <span

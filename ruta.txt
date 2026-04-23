@@ -1,0 +1,49 @@
+1. Ruta de bloques de implementación
+🟢 BLOQUE 0 — Limpieza y correcciones urgentes (antes de todo)
+
+Quitar campo "ingreso aproximado" del formulario y BD de historial laboral
+Corregir ruta /directorio (el botón "ver directorio completo" no funciona)
+Egresados destacados en landing: reemplazar datos estáticos por datos reales de BD
+Ordenar por última actualización (más reciente = más arriba) tanto en destacados como en directorio
+
+🟡 BLOQUE 1 — Autenticación y usuarios (base para todo lo demás)
+
+RF-09/10/11: Contraseña inicial = CI + iniciales (ej: 12345678AM para Ana Mamani)
+RF-10: Obligar cambio de contraseña en primer login
+RF-11: Validar mayúscula + minúscula + número en nueva contraseña
+RF-12: Flujo de recuperación por correo (ya existe parcialmente, revisar)
+Crear usuario automáticamente al registrar egresado con correo (ya existe, ajustar contraseña)
+
+🟡 BLOQUE 2 — Dashboard mejorado (RF-13, RF-14)
+
+Añadir: titulados por año + tipo de titulación
+Añadir: área/sector laboral actual de egresados
+Distribución por género, plan, sector, empleabilidad por año (revisar cuáles faltan)
+Filtros del dashboard: año egreso, plan, género, sector, ciudad
+Tiempo promedio de titulación (desde ingreso hasta titulación)
+Nivel de postgrado
+Fecha de última actualización visible
+
+🟡 BLOQUE 3 — Postgrado con verificación (extensión de RF-08)
+
+Añadir flujo de solicitud de actualización de postgrado → admin aprueba
+Subida opcional de certificado/título de postgrado
+Panel admin para aprobar/rechazar cambios de postgrado (similar a verificaciones laborales)
+
+🟡 BLOQUE 4 — Sugerencias del egresado (nuevo)
+
+Añadir tabla sugerencias a BD (ya existe en schema, verificar)
+Página/sección en perfil del egresado para enviar sugerencias
+Vista en panel admin para leer sugerencias
+
+🟠 BLOQUE 5 — Carga masiva de egresados desde Excel (RF-15/16 + operativo)
+
+Script Python o Node para importar desde .xlsx
+Definir formato/plantilla del Excel
+Opcional: botón en panel admin para subir Excel directamente
+Mostrar plantilla descargable desde el panel
+
+🔴 BLOQUE 6 — Pendientes a definir (esperar reunión)
+
+Indicadores adicionales del dashboard
+Encuesta de estudio de mercado (preguntas pendientes)

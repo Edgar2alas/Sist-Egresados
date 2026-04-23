@@ -5,7 +5,6 @@ import {
   uniqueIndex, index, customType,
 } from "drizzle-orm/pg-core";
 
-// bytea personalizado para Drizzle
 const bytea = customType<{ data: Buffer; driverData: Buffer }>({
   dataType() { return "bytea"; },
 });
@@ -63,7 +62,6 @@ export const egresado = pgTable("egresado", {
   modalidadTitulacion: modalidadEnum("modalidad_titulacion"),
   fechaTitulacion: date("fecha_titulacion"),
   fechaGraduacion: date("fecha_graduacion").notNull(),
-  // Directorio público (RF-Bloque E)
   mostrarEnDirectorio: boolean("mostrar_en_directorio").notNull().default(false),
   fechaRegistro:       timestamp("fecha_registro").notNull().defaultNow(),
   ultimaActualizacion: timestamp("ultima_actualizacion").defaultNow(),
@@ -74,7 +72,8 @@ export const egresado = pgTable("egresado", {
   planNombreIdx: index("idx_egresado_plan_nombre").on(t.planEstudiosNombre),
 }));
 
-// ── historial_laboral (RF-06 + Bloque C verificación) ────────────────────────
+// ── historial_laboral ────────────────────────────────────────────────────────
+// ingresoAproximado eliminado — campo privado innecesario en el formulario
 export const historialLaboral = pgTable("historial_laboral", {
   id:          serial("id").primaryKey(),
   idEgresado:  integer("id_egresado").notNull()
@@ -87,15 +86,12 @@ export const historialLaboral = pgTable("historial_laboral", {
   tipoContrato:      contratoEnum("tipo_contrato"),
   ciudad:            varchar("ciudad",          { length: 100 }),
   sector:            sectorEnum("sector"),
-  ingresoAproximado: numeric("ingreso_aproximado", { precision: 10, scale: 2 }),
 
-  // ── Verificación de documento (Bloque C) ──────────────────────────────────
-  // NULL = no requirió documento (experiencias anteriores)
+  // ── Verificación de documento ─────────────────────────────────────────────
   verificacionEstado:  verificacionEstadoEnum("verificacion_estado"),
-  // Binario del documento — se borra al aprobar/rechazar
   documentoBinario:    bytea("documento_binario"),
   documentoNombre:     varchar("documento_nombre",   { length: 255 }),
-  documentoTipo:       varchar("documento_tipo",     { length: 100 }),  // MIME type
+  documentoTipo:       varchar("documento_tipo",     { length: 100 }),
   documentoSubidoEn:   timestamp("documento_subido_en"),
   verificadoEn:        timestamp("verificado_en"),
   rechazoMotivo:       text("rechazo_motivo"),
@@ -103,12 +99,12 @@ export const historialLaboral = pgTable("historial_laboral", {
   ultimaActualizacion: timestamp("ultima_actualizacion").defaultNow(),
   creadoEn:            timestamp("creado_en").notNull().defaultNow(),
 }, (t) => ({
-  sectorIdx:        index("idx_historial_sector").on(t.sector),
-  ciudadIdx:        index("idx_historial_ciudad").on(t.ciudad),
-  verificacionIdx:  index("idx_historial_verificacion").on(t.verificacionEstado),
+  sectorIdx:       index("idx_historial_sector").on(t.sector),
+  ciudadIdx:       index("idx_historial_ciudad").on(t.ciudad),
+  verificacionIdx: index("idx_historial_verificacion").on(t.verificacionEstado),
 }));
 
-// ── postgrado (RF-08) ─────────────────────────────────────────────────────────
+// ── postgrado ─────────────────────────────────────────────────────────────────
 export const postgrado = pgTable("postgrado", {
   id:          serial("id").primaryKey(),
   idEgresado:  integer("id_egresado").notNull()

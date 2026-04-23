@@ -7,6 +7,7 @@ import { getSession } from "@/lib/auth";
 import { ok, err } from "@/lib/utils";
 import { z } from "zod";
 
+// ingresoAproximado eliminado del schema interno
 const historialFormSchema = z.object({
   idEgresado:         z.number().int().positive(),
   empresa:            z.string().min(2).max(150),
@@ -15,7 +16,6 @@ const historialFormSchema = z.object({
   tipoContrato:       z.enum(["Indefinido","Fijo","Por obra","Consultor","Pasante","Otro"]).optional().nullable(),
   ciudad:             z.string().max(100).optional().nullable(),
   sector:             z.enum(["Publico","Privado","Independiente","ONG","Otro"]).optional().nullable(),
-  ingresoAproximado:  z.number().positive().optional().nullable(),
   fechaInicio:        z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   fechaFin:           z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().nullable(),
   actualmenteTrabaja: z.boolean().default(false),
@@ -32,7 +32,6 @@ export async function GET(req: NextRequest) {
     if (session.rol === "egresado" && session.idEgresado !== idEgresado)
       return err("No autorizado", 403);
 
-    // Excluir el binario del documento en el GET (pesado, innecesario)
     const rows = await db.select({
       id:                  historialLaboral.id,
       idEgresado:          historialLaboral.idEgresado,
@@ -44,7 +43,6 @@ export async function GET(req: NextRequest) {
       tipoContrato:        historialLaboral.tipoContrato,
       ciudad:              historialLaboral.ciudad,
       sector:              historialLaboral.sector,
-      ingresoAproximado:   historialLaboral.ingresoAproximado,
       verificacionEstado:  historialLaboral.verificacionEstado,
       documentoNombre:     historialLaboral.documentoNombre,
       documentoTipo:       historialLaboral.documentoTipo,
@@ -67,10 +65,8 @@ export async function POST(req: NextRequest) {
     const session = await getSession();
     if (!session) return err("No autorizado", 401);
 
-    // Leer como FormData para soportar archivo
     const formData = await req.formData();
 
-    // Extraer campos de texto
     const raw = {
       idEgresado:         parseInt(formData.get("idEgresado") as string),
       empresa:            formData.get("empresa") as string,
@@ -79,9 +75,6 @@ export async function POST(req: NextRequest) {
       tipoContrato:       formData.get("tipoContrato") as string || null,
       ciudad:             formData.get("ciudad") as string || null,
       sector:             formData.get("sector") as string || null,
-      ingresoAproximado:  formData.get("ingresoAproximado")
-        ? parseFloat(formData.get("ingresoAproximado") as string)
-        : null,
       fechaInicio:        formData.get("fechaInicio") as string,
       fechaFin:           formData.get("fechaFin") as string || null,
       actualmenteTrabaja: formData.get("actualmenteTrabaja") === "true",
@@ -105,12 +98,10 @@ export async function POST(req: NextRequest) {
     let verificacionEstado: "pendiente" | null = null;
 
     if (archivo && archivo.size > 0) {
-      // Validar tipo (solo PDF e imágenes)
       const tiposPermitidos = ["application/pdf", "image/jpeg", "image/png", "image/webp"];
       if (!tiposPermitidos.includes(archivo.type)) {
         return err("Solo se permiten archivos PDF, JPG, PNG o WEBP");
       }
-      // Validar tamaño (máx 5MB)
       if (archivo.size > 5 * 1024 * 1024) {
         return err("El archivo no puede superar los 5MB");
       }
@@ -123,21 +114,21 @@ export async function POST(req: NextRequest) {
     }
 
     const [row] = await db.insert(historialLaboral).values({
-      idEgresado:         d.idEgresado,
-      empresa:            d.empresa,
-      cargo:              d.cargo,
-      area:               d.area ?? null,
-      tipoContrato:       (d.tipoContrato as any) ?? null,
-      ciudad:             d.ciudad ?? null,
-      sector:             (d.sector as any) ?? null,
-      ingresoAproximado:  d.ingresoAproximado != null ? String(d.ingresoAproximado) : null,
-      fechaInicio:        d.fechaInicio,
+      idEgresado:        d.idEgresado,
+      empresa:           d.empresa,
+      cargo:             d.cargo,
+      area:              d.area ?? null,
+      tipoContrato:      (d.tipoContrato as any) ?? null,
+      ciudad:            d.ciudad ?? null,
+      sector:            (d.sector as any) ?? null,
+      // ingresoAproximado eliminado — campo sigue en BD pero ya no se recibe
+      fechaInicio:       d.fechaInicio,
       fechaFin,
       verificacionEstado,
-      documentoBinario:   docBinario,
-      documentoNombre:    docNombre,
-      documentoTipo:      docTipo,
-      documentoSubidoEn:  docSubidoEn,
+      documentoBinario:  docBinario,
+      documentoNombre:   docNombre,
+      documentoTipo:     docTipo,
+      documentoSubidoEn: docSubidoEn,
     }).returning({
       id:                 historialLaboral.id,
       empresa:            historialLaboral.empresa,

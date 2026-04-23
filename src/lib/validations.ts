@@ -26,7 +26,7 @@ export const egresadoSchema = z.object({
   // Plan de estudios
   planEstudiosNombre: z.string().max(50).optional().nullable(),
 
-  // RF-03: Datos académicos — solo año (sin semestres en el form)
+  // RF-03: Datos académicos
   anioIngreso:    z.number().int().min(1998).max(new Date().getFullYear()).optional().nullable(),
   anioEgreso:     z.number().int().min(1998).max(new Date().getFullYear() + 1).optional().nullable(),
   anioTitulacion: z.number().int().min(1998).max(new Date().getFullYear() + 1).optional().nullable(),
@@ -53,6 +53,7 @@ export const egresadoSchema = z.object({
 );
 
 // ── Historial laboral (RF-06) ─────────────────────────────────────────────────
+// ingresoAproximado eliminado del formulario y validación
 export const historialSchema = z.object({
   idEgresado:         z.number().int().positive(),
   empresa:            z.string().min(2, "Requerido").max(150),
@@ -61,7 +62,6 @@ export const historialSchema = z.object({
   tipoContrato:       z.enum(["Indefinido", "Fijo", "Por obra", "Consultor", "Pasante", "Otro"]).optional().nullable(),
   ciudad:             z.string().max(100).optional().nullable(),
   sector:             z.enum(["Publico", "Privado", "Independiente", "ONG", "Otro"]).optional().nullable(),
-  ingresoAproximado:  z.number().positive().optional().nullable(),
   fechaInicio:        z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Fecha inválida"),
   fechaFin:           z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Fecha inválida").optional().nullable(),
   actualmenteTrabaja: z.boolean().default(false),
