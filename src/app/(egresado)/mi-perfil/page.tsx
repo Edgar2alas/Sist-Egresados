@@ -10,6 +10,7 @@ import { fmtDate, fmtGestion } from "@/lib/utils";
 import MiPerfilHistorial from "@/components/perfil/MiPerfilHistorial";
 import MiPerfilPostgrados from "@/components/perfil/MiPerfilPostgrados";
 import DirectorioToggle from "@/components/perfil/DirectorioToggle";
+import SugerenciaForm from "@/components/perfil/SugerenciaForm";
 
 function calcularTiempoPrimerEmpleo(
   anioRef: number | null | undefined,
@@ -22,14 +23,18 @@ function calcularTiempoPrimerEmpleo(
 }
 
 export default async function MiPerfilPage() {
-  const session = await getSession();
+ const session = await getSession();
   if (!session || session.rol !== "egresado") redirect("/login");
+  
+  // Si no tiene idEgresado en sesión, ir a registro-inicial
+  // pero solo si realmente no existe en BD
   if (!session.idEgresado) redirect("/registro-inicial");
 
   const [eg] = await db.select().from(egresado)
     .where(eq(egresado.id, session.idEgresado)).limit(1);
+  
+  // Si el egresado no existe en BD, ir a registro-inicial
   if (!eg) redirect("/registro-inicial");
-
   const [historial, postgrados] = await Promise.all([
     db.select().from(historialLaboral)
       .where(eq(historialLaboral.idEgresado, eg.id))
@@ -205,7 +210,18 @@ export default async function MiPerfilPage() {
         )}
 
         <MiPerfilPostgrados postgrados={postgrados} idEgresado={eg.id} />
-      </div>
+        </div>
+        <div className="card">
+          <div className="mb-5">
+            <h2 className="text-lg font-bold" style={{ color: "var(--azul-pizarra)", fontFamily: "'Source Serif 4', serif" }}>
+              Enviar una sugerencia
+            </h2>
+            <p className="text-sm mt-0.5" style={{ color: "var(--gris-grafito)" }}>
+              Comparte tus ideas, comentarios o recomendaciones a la carrera
+            </p>
+          </div>
+          <SugerenciaForm />
+        </div>
 
     </div>
   );

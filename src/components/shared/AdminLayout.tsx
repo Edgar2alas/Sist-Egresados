@@ -4,18 +4,17 @@ import { usePathname, useRouter } from "next/navigation";
 import {
   LayoutDashboard, Users, FileBarChart,
   UserCog, LogOut, GraduationCap, ChevronRight,
-  BookOpen,
-  ShieldCheck,
+  ShieldCheck, MessageSquare,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const NAV = [
-  { href: "/dashboard",  label: "Dashboard",  icon: LayoutDashboard },
-  { href: "/egresados",  label: "Egresados",  icon: Users },
-  { href: "/reportes",   label: "Reportes",   icon: FileBarChart },
-  { href: "/postgrados", label: "Postgrados", icon: BookOpen },
-  { href: "/usuarios",   label: "Usuarios",   icon: UserCog },
+  { href: "/dashboard",      label: "Dashboard",      icon: LayoutDashboard },
+  { href: "/egresados",      label: "Egresados",      icon: Users },
+  { href: "/reportes",       label: "Reportes",       icon: FileBarChart },
+  { href: "/usuarios",       label: "Usuarios",       icon: UserCog },
   { href: "/verificaciones", label: "Verificaciones", icon: ShieldCheck },
+  { href: "/sugerencias",    label: "Sugerencias",    icon: MessageSquare },
 ];
 
 export default function AdminLayout({

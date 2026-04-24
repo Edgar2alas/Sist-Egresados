@@ -163,8 +163,8 @@ export default function VerificacionesPostgradoClient({
                   </div>
                 )}
 
-                {/* Documento */}
-                {p.documentoNombre && (
+                 {/* Documento */}
+                {p.documentoNombre ? (
                   <div className="flex items-center gap-2 mb-3">
                     <FileText className="w-4 h-4 shrink-0" style={{ color: "var(--turquesa)" }} />
                     <a href={`/api/postgrado/${p.id}/verificar`} target="_blank" rel="noopener noreferrer"
@@ -173,6 +173,14 @@ export default function VerificacionesPostgradoClient({
                       <Eye className="w-3.5 h-3.5" />
                       {p.documentoNombre}
                     </a>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2 mb-3 px-3 py-2 rounded-lg"
+                    style={{ background: "var(--humo)", border: "1px solid var(--borde)" }}>
+                    <FileText className="w-4 h-4 shrink-0" style={{ color: "var(--placeholder)" }} />
+                    <span className="text-xs" style={{ color: "var(--placeholder)" }}>
+                      Sin documento adjunto — verificar por otros medios
+                    </span>
                   </div>
                 )}
 

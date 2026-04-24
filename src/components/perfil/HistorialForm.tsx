@@ -217,9 +217,12 @@ export default function HistorialForm({ idEgresado, historial, onSuccess }: Prop
               <p className="text-sm font-semibold" style={{ color: "var(--turquesa-dark)" }}>
                 Documento de verificación
               </p>
-              <p className="text-xs mt-0.5" style={{ color: "var(--gris-grafito)" }}>
+                <p className="text-xs mt-0.5" style={{ color: "var(--gris-grafito)" }}>
                 Adjunta un certificado de trabajo, contrato o credencial institucional.
-                El administrador revisará y confirmará tu experiencia. (Opcional pero recomendado)
+                El administrador revisará y confirmará tu experiencia.{" "}
+                <span className="font-medium" style={{ color: "var(--turquesa-dark)" }}>
+                  El documento es opcional.
+                </span>
               </p>
             </div>
           </div>

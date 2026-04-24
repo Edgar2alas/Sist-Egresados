@@ -1,12 +1,23 @@
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
+import { db } from "@/lib/db";
+import { egresado } from "@/lib/schema";
+import { eq } from "drizzle-orm";
 import { GraduationCap } from "lucide-react";
 import RegistroInicialForm from "@/components/perfil/RegistroInicialForm";
 
 export default async function RegistroInicialPage() {
   const session = await getSession();
   if (!session || session.rol !== "egresado") redirect("/login");
-  if (session.idEgresado) redirect("/mi-perfil");
+  
+  // Solo redirigir a mi-perfil si tiene idEgresado Y existe en BD
+  if (session.idEgresado) {
+    const [eg] = await db.select({ id: egresado.id })
+      .from(egresado)
+      .where(eq(egresado.id, session.idEgresado))
+      .limit(1);
+    if (eg) redirect("/mi-perfil");
+  }
 
   return (
     <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4">

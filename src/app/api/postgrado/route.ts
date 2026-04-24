@@ -86,7 +86,6 @@ export async function POST(req: NextRequest) {
     let docNombre: string | null = null;
     let docTipo: string | null = null;
     let docSubidoEn: Date | null = null;
-    let verificacionEstado: string | null = null;
 
     if (archivo && archivo.size > 0) {
       const tiposPermitidos = ["application/pdf", "image/jpeg", "image/png", "image/webp"];
@@ -99,8 +98,10 @@ export async function POST(req: NextRequest) {
       docNombre     = archivo.name;
       docTipo       = archivo.type;
       docSubidoEn   = new Date();
-      verificacionEstado = "pendiente";
     }
+
+    // Siempre pendiente, tenga o no documento
+    const verificacionEstado = "pendiente";
 
     const [row] = await db.insert(postgrado).values({
       idEgresado:         d.idEgresado,

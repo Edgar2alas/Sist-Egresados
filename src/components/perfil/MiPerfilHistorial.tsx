@@ -1,9 +1,35 @@
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Building2, MapPin, Pencil, Trash2, X, Briefcase } from "lucide-react";
+import { Building2, MapPin, Pencil, Trash2, X, Briefcase, CheckCircle, Clock, XCircle } from "lucide-react";
 import { cn, fmtDate } from "@/lib/utils";
 import HistorialForm from "./HistorialForm";
+
+function VerificacionBadge({ estado, motivo }: { estado: string | null; motivo?: string | null }) {
+  if (!estado) return null;
+  if (estado === "aprobado") return (
+    <div className="flex items-center gap-1.5 mt-1">
+      <CheckCircle className="w-3.5 h-3.5" style={{ color: "var(--verde)" }} />
+      <span className="text-xs font-medium" style={{ color: "var(--verde)" }}>Verificado</span>
+    </div>
+  );
+  if (estado === "rechazado") return (
+    <div className="mt-1">
+      <div className="flex items-center gap-1.5">
+        <XCircle className="w-3.5 h-3.5 text-red-400" />
+        <span className="text-xs font-medium text-red-400">Rechazado</span>
+      </div>
+      {motivo && <p className="text-xs text-red-400/70 mt-0.5">{motivo}</p>}
+    </div>
+  );
+  if (estado === "pendiente") return (
+    <div className="flex items-center gap-1.5 mt-1">
+      <Clock className="w-3.5 h-3.5" style={{ color: "var(--naranja)" }} />
+      <span className="text-xs font-medium" style={{ color: "var(--naranja)" }}>En verificación</span>
+    </div>
+  );
+  return null;
+}
 
 export default function MiPerfilHistorial({
   historial, idEgresado,
@@ -53,8 +79,6 @@ export default function MiPerfilHistorial({
                   <div className="min-w-0">
                     <p className="text-white font-semibold text-sm">{h.cargo}</p>
                     <p className="text-slate-400 text-sm">{h.empresa}</p>
-
-                    {/* Metadatos: área, ciudad, sector, contrato */}
                     <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1.5">
                       {h.area && (
                         <span className="text-slate-500 text-xs flex items-center gap-1">
@@ -82,6 +106,7 @@ export default function MiPerfilHistorial({
                         <span className="text-slate-600 text-xs">{h.tipoContrato}</span>
                       )}
                     </div>
+                    <VerificacionBadge estado={h.verificacionEstado} motivo={h.rechazoMotivo} />
                   </div>
                 </div>
 

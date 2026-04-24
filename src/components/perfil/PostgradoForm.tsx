@@ -183,7 +183,10 @@ export default function PostgradoForm({ idEgresado, postgrado: pg, onSuccess, on
                 Certificado o título (opcional)
               </p>
               <p className="text-xs mt-0.5" style={{ color: "var(--gris-grafito)" }}>
-                Adjunta tu diploma, certificado o comprobante de inscripción. PDF, JPG o PNG — máx. 5MB.
+                Adjunta tu diploma, certificado o comprobante de inscripción. PDF, JPG o PNG — máx. 5MB.{" "}
+                <span className="font-medium" style={{ color: "var(--turquesa-dark)" }}>
+                  El documento es opcional.
+                </span>
               </p>
             </div>
           </div>

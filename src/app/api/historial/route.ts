@@ -95,7 +95,6 @@ export async function POST(req: NextRequest) {
     let docNombre: string | null = null;
     let docTipo: string | null = null;
     let docSubidoEn: Date | null = null;
-    let verificacionEstado: "pendiente" | null = null;
 
     if (archivo && archivo.size > 0) {
       const tiposPermitidos = ["application/pdf", "image/jpeg", "image/png", "image/webp"];
@@ -110,8 +109,10 @@ export async function POST(req: NextRequest) {
       docNombre = archivo.name;
       docTipo = archivo.type;
       docSubidoEn = new Date();
-      verificacionEstado = "pendiente";
     }
+
+    // Siempre pendiente, tenga o no documento
+    const verificacionEstado: "pendiente" = "pendiente";
 
     const [row] = await db.insert(historialLaboral).values({
       idEgresado:        d.idEgresado,
@@ -121,7 +122,6 @@ export async function POST(req: NextRequest) {
       tipoContrato:      (d.tipoContrato as any) ?? null,
       ciudad:            d.ciudad ?? null,
       sector:            (d.sector as any) ?? null,
-      // ingresoAproximado eliminado — campo sigue en BD pero ya no se recibe
       fechaInicio:       d.fechaInicio,
       fechaFin,
       verificacionEstado,
