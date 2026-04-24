@@ -1,39 +1,63 @@
 // src/app/api/egresados/destacados/route.ts
 import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
-import { egresado } from "@/lib/schema";
-import { eq, sql } from "drizzle-orm";
+import { egresado, historialLaboral } from "@/lib/schema";
+import { eq, sql, and, desc } from "drizzle-orm";
 import { ok, err } from "@/lib/utils";
 
 export async function GET(_: NextRequest) {
   try {
-    const rows = await db.select({
-      id:                 egresado.id,
-      nombres:            egresado.nombres,
-      apellidos:          egresado.apellidos,
-      apellidoPaterno:    egresado.apellidoPaterno,
-      apellidoMaterno:    egresado.apellidoMaterno,
-      tituloAcademico:    egresado.tituloAcademico,
-      planEstudiosNombre: egresado.planEstudiosNombre,
-      empleoActual: sql<string | null>`(
-        SELECT h.cargo || ' — ' || h.empresa
-        FROM historial_laboral h
-        WHERE h.id_egresado = ${egresado.id} AND h.fecha_fin IS NULL
-        ORDER BY h.fecha_inicio DESC LIMIT 1
-      )`,
-      ciudadActual: sql<string | null>`(
-        SELECT h.ciudad
-        FROM historial_laboral h
-        WHERE h.id_egresado = ${egresado.id} AND h.fecha_fin IS NULL
-        ORDER BY h.fecha_inicio DESC LIMIT 1
-      )`,
+    // Traer egresados visibles en directorio
+    const egresados = await db.select({
+      id:                  egresado.id,
+      nombres:             egresado.nombres,
+      apellidos:           egresado.apellidos,
+      apellidoPaterno:     egresado.apellidoPaterno,
+      apellidoMaterno:     egresado.apellidoMaterno,
+      tituloAcademico:     egresado.tituloAcademico,
+      planEstudiosNombre:  egresado.planEstudiosNombre,
       ultimaActualizacion: egresado.ultimaActualizacion,
     })
     .from(egresado)
     .where(eq(egresado.mostrarEnDirectorio, true))
-    // Más recientemente actualizados primero
     .orderBy(sql`${egresado.ultimaActualizacion} DESC NULLS LAST`)
     .limit(6);
+
+    if (egresados.length === 0) return ok([]);
+
+    // Traer empleos actuales
+    const ids = egresados.map(e => e.id);
+    const empleos = await db.select({
+      idEgresado: historialLaboral.idEgresado,
+      cargo:      historialLaboral.cargo,
+      empresa:    historialLaboral.empresa,
+      ciudad:     historialLaboral.ciudad,
+    })
+    .from(historialLaboral)
+    .where(
+      and(
+        sql`${historialLaboral.idEgresado} = ANY(${sql.raw(`ARRAY[${ids.join(",")}]`)})`,
+        sql`${historialLaboral.fechaFin} IS NULL`
+      )
+    )
+    .orderBy(desc(historialLaboral.fechaInicio));
+
+    // El más reciente por egresado
+    const empleoMap = new Map<number, typeof empleos[0]>();
+    for (const e of empleos) {
+      if (!empleoMap.has(e.idEgresado)) {
+        empleoMap.set(e.idEgresado, e);
+      }
+    }
+
+    const rows = egresados.map(eg => {
+      const empleo = empleoMap.get(eg.id);
+      return {
+        ...eg,
+        empleoActual: empleo ? `${empleo.cargo} — ${empleo.empresa}` : null,
+        ciudadActual: empleo?.ciudad ?? null,
+      };
+    });
 
     return ok(rows);
   } catch (e) {

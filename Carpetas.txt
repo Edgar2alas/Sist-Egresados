@@ -45,6 +45,7 @@ src/
 │       ├── egresados/
 │       │   ├── route.ts                  # GET (listado paginado+filtros) / POST (crear)
 │       │   ├── [id]/route.ts             # GET / PUT / DELETE por id
+│       │   ├── destacados/route.ts       
 │       │   └── directorio/route.ts       # POST: toggle mostrar_en_directorio del egresado
 │       ├── historial/
 │       │   ├── route.ts                  # GET (por egresado) / POST (crear con FormData + doc)

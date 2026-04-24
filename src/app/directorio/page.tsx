@@ -1,11 +1,10 @@
 // src/app/directorio/page.tsx
 import { db } from "@/lib/db";
-import { egresado } from "@/lib/schema";
-import { eq, sql, ilike, and, or } from "drizzle-orm";
+import { egresado, historialLaboral } from "@/lib/schema";
+import { eq, sql, ilike, and, or, desc } from "drizzle-orm";
 import PublicLayout from "@/components/shared/PublicLayout";
 import DirectorioClient from "@/components/directorio/DirectorioClient";
 
-// Next.js requiere que searchParams extienda Record<string, string | undefined>
 interface SP extends Record<string, string | undefined> {
   busqueda?: string;
   plan?:     string;
@@ -28,14 +27,14 @@ async function getEgresados(sp: SP) {
   if (sp.sector)
     conds.push(sql`EXISTS(
       SELECT 1 FROM historial_laboral h
-      WHERE h.id_egresado=${egresado.id}
+      WHERE h.id_egresado = ${egresado.id}
         AND h.sector::text = ${sp.sector}
         AND h.fecha_fin IS NULL
     )`);
   if (sp.ciudad)
     conds.push(sql`EXISTS(
       SELECT 1 FROM historial_laboral h
-      WHERE h.id_egresado=${egresado.id}
+      WHERE h.id_egresado = ${egresado.id}
         AND LOWER(h.ciudad) = LOWER(${sp.ciudad})
         AND h.fecha_fin IS NULL
     )`);
@@ -46,40 +45,63 @@ async function getEgresados(sp: SP) {
     .select({ total: sql<number>`count(*)::int` })
     .from(egresado).where(where);
 
-  const rows = await db.select({
-    id:                 egresado.id,
-    nombres:            egresado.nombres,
-    apellidos:          egresado.apellidos,
-    apellidoPaterno:    egresado.apellidoPaterno,
-    apellidoMaterno:    egresado.apellidoMaterno,
-    tituloAcademico:    egresado.tituloAcademico,
-    planEstudiosNombre: egresado.planEstudiosNombre,
-    anioTitulacion:     egresado.anioTitulacion,
-    correoElectronico:  egresado.correoElectronico,
-    celular:            egresado.celular,
-    empleoActual: sql<string | null>`(
-      SELECT h.cargo || ' — ' || h.empresa
-      FROM historial_laboral h
-      WHERE h.id_egresado = ${egresado.id} AND h.fecha_fin IS NULL
-      ORDER BY h.fecha_inicio DESC LIMIT 1
-    )`,
-    ciudadActual: sql<string | null>`(
-      SELECT h.ciudad
-      FROM historial_laboral h
-      WHERE h.id_egresado = ${egresado.id} AND h.fecha_fin IS NULL
-      ORDER BY h.fecha_inicio DESC LIMIT 1
-    )`,
-    sectorActual: sql<string | null>`(
-      SELECT h.sector::text
-      FROM historial_laboral h
-      WHERE h.id_egresado = ${egresado.id} AND h.fecha_fin IS NULL
-      ORDER BY h.fecha_inicio DESC LIMIT 1
-    )`,
+  // Traer egresados base
+  const egresados = await db.select({
+    id:                  egresado.id,
+    nombres:             egresado.nombres,
+    apellidos:           egresado.apellidos,
+    apellidoPaterno:     egresado.apellidoPaterno,
+    apellidoMaterno:     egresado.apellidoMaterno,
+    tituloAcademico:     egresado.tituloAcademico,
+    planEstudiosNombre:  egresado.planEstudiosNombre,
+    anioTitulacion:      egresado.anioTitulacion,
+    correoElectronico:   egresado.correoElectronico,
+    celular:             egresado.celular,
     ultimaActualizacion: egresado.ultimaActualizacion,
   })
   .from(egresado).where(where)
   .orderBy(sql`${egresado.ultimaActualizacion} DESC NULLS LAST`)
   .limit(pageSize).offset((page - 1) * pageSize);
+
+  if (egresados.length === 0) {
+    return { rows: [], total, page, totalPages: Math.ceil(total / pageSize) };
+  }
+
+  // Traer empleo actual de cada egresado
+  const ids = egresados.map(e => e.id);
+  const empleos = await db.select({
+    idEgresado: historialLaboral.idEgresado,
+    cargo:      historialLaboral.cargo,
+    empresa:    historialLaboral.empresa,
+    ciudad:     historialLaboral.ciudad,
+    sector:     historialLaboral.sector,
+  })
+  .from(historialLaboral)
+  .where(
+    and(
+      sql`${historialLaboral.idEgresado} = ANY(${sql.raw(`ARRAY[${ids.join(",")}]`)})`,
+      sql`${historialLaboral.fechaFin} IS NULL`
+    )
+  )
+  .orderBy(desc(historialLaboral.fechaInicio));
+
+  // Mapear empleo actual por egresado (el más reciente)
+  const empleoMap = new Map<number, typeof empleos[0]>();
+  for (const e of empleos) {
+    if (!empleoMap.has(e.idEgresado)) {
+      empleoMap.set(e.idEgresado, e);
+    }
+  }
+
+  const rows = egresados.map(eg => {
+    const empleo = empleoMap.get(eg.id);
+    return {
+      ...eg,
+      empleoActual: empleo ? `${empleo.cargo} — ${empleo.empresa}` : null,
+      ciudadActual: empleo?.ciudad ?? null,
+      sectorActual: empleo?.sector ?? null,
+    };
+  });
 
   return { rows, total, page, totalPages: Math.ceil(total / pageSize) };
 }
