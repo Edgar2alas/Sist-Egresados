@@ -5,6 +5,9 @@ import { eq } from "drizzle-orm";
 import { verifyPassword, signToken, setSession } from "@/lib/auth";
 import { loginSchema } from "@/lib/validations";
 import { ok, err } from "@/lib/utils";
+import { crearToken } from "@/lib/tokens";
+import { sendPrimerLoginEmail } from "@/lib/email";
+import { getDatosUsuarioParaEmail } from "@/lib/tokens";
 
 export async function POST(req: NextRequest) {
   try {
@@ -26,8 +29,19 @@ export async function POST(req: NextRequest) {
     const valid = await verifyPassword(password, u.passwordHash);
     if (!valid) return err("Correo o contraseña incorrectos", 401);
 
-    // TODO: reactivar flujo de primer_login cuando el correo esté configurado
-    // if (u.primerLogin) { ... }
+    // RF-10: Si es primer login, enviar código y redirigir a activar cuenta
+    if (u.primerLogin) {
+      try {
+        const datos  = await getDatosUsuarioParaEmail(u.id);
+        const nombres = datos?.nombres ?? correo.split("@")[0];
+        const codigo  = await crearToken({ idUsuario: u.id, tipo: "primer_login" });
+        await sendPrimerLoginEmail({ to: correo, nombres, codigo });
+      } catch (emailErr) {
+        // Si falla el correo, igual permitimos continuar (el código se muestra en consola en dev)
+        console.error("[login] Error enviando email de activación:", emailErr);
+      }
+      return ok({ primerLogin: true, correo });
+    }
 
     const token = await signToken({
       idUsuario:  u.id,

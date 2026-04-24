@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { Menu, X, LogOut } from "lucide-react";
 
 interface PublicHeaderProps {
-  /** Si se pasa desde un Server Component logueado, se usa directamente */
   isLoggedIn?: boolean;
   correo?: string;
 }
@@ -63,33 +62,6 @@ export default function PublicHeader({ isLoggedIn, correo }: PublicHeaderProps) 
               </p>
             </div>
           </Link>
-
-          {/* Nav desktop — solo si NO está logueado */}
-          {!isLoggedIn && (
-            <nav className="hidden md:flex items-center gap-1">
-              {[
-                { label: "Inicio",     href: "/" },
-                { label: "Directorio", href: "/directorio" },
-              ].map(item => (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className="px-3 py-2 rounded-lg text-sm font-medium transition-all"
-                  style={{ color: "rgba(255,255,255,0.75)" }}
-                  onMouseEnter={e => {
-                    (e.target as HTMLElement).style.color = "#fff";
-                    (e.target as HTMLElement).style.background = "rgba(255,255,255,0.08)";
-                  }}
-                  onMouseLeave={e => {
-                    (e.target as HTMLElement).style.color = "rgba(255,255,255,0.75)";
-                    (e.target as HTMLElement).style.background = "transparent";
-                  }}
-                >
-                  {item.label}
-                </Link>
-              ))}
-            </nav>
-          )}
 
           {/* Acción derecha */}
           <div className="hidden md:flex items-center gap-3">
@@ -162,12 +134,6 @@ export default function PublicHeader({ isLoggedIn, correo }: PublicHeaderProps) 
           style={{ background: "var(--marino-mid)", borderColor: "rgba(255,255,255,0.08)" }}
         >
           <div className="max-w-7xl mx-auto px-4 py-3 space-y-1">
-            {!isLoggedIn && (
-              <>
-                <Link href="/"          onClick={() => setMenuOpen(false)} className="block px-4 py-2.5 rounded-xl text-sm font-medium" style={{ color: "rgba(255,255,255,0.8)" }}>Inicio</Link>
-                <Link href="/directorio" onClick={() => setMenuOpen(false)} className="block px-4 py-2.5 rounded-xl text-sm font-medium" style={{ color: "rgba(255,255,255,0.8)" }}>Directorio</Link>
-              </>
-            )}
             <div className="pt-2 pb-1">
               {isLoggedIn ? (
                 <button

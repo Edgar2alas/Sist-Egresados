@@ -7,7 +7,11 @@ export async function middleware(req: NextRequest) {
 
   // 1. API: verificar sesión, handler maneja autorización
   if (pathname.startsWith("/api/")) {
-    if (pathname.startsWith("/api/auth/login")) return NextResponse.next();
+    if (
+          pathname.startsWith("/api/auth/login") ||
+          pathname.startsWith("/api/egresados/destacados") ||
+          pathname.startsWith("/api/egresados/directorio-publico")
+        ) return NextResponse.next();
 
     const token   = req.cookies.get("eg_token")?.value;
     const session = token ? await verifyToken(token) : null;
@@ -21,7 +25,7 @@ export async function middleware(req: NextRequest) {
   }
 
   // 2. Rutas públicas sin autenticación
-  const publicRoutes = ["/activar-cuenta", "/recuperar-password"];
+  const publicRoutes = ["/activar-cuenta", "/recuperar-password", "/directorio", "/login"];
   if (publicRoutes.includes(pathname)) return NextResponse.next();
 
   // 3. Login: redirigir si ya tiene sesión

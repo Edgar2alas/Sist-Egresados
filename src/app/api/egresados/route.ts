@@ -4,7 +4,8 @@ import { egresado, usuario } from "@/lib/schema";
 import { eq, ilike, and, or, sql, desc } from "drizzle-orm";
 import { getSession, hashPassword } from "@/lib/auth";
 import { egresadoSchema } from "@/lib/validations";
-import { ok, err } from "@/lib/utils";
+import { ok, err, generarPasswordInicial } from "@/lib/utils";
+
 
 export async function GET(req: NextRequest) {
   try {
@@ -125,15 +126,14 @@ export async function POST(req: NextRequest) {
 
       // Auto-crear usuario si tiene correo — contraseña inicial = CI
       if (d.correoElectronico && nuevoEgresado) {
-        const passwordHash = await hashPassword(d.ci);
-        await tx.insert(usuario).values({
-          correo:      d.correoElectronico,
-          passwordHash,
-          rol:         "egresado",
-          estado:      "activo",
-          idEgresado:  nuevoEgresado.id,
-          primerLogin: true,
-        });
+        const passwordInicial = generarPasswordInicial(
+          d.ci,
+          d.nombres,
+          d.apellidoPaterno,
+          d.apellidoMaterno,
+          d.apellidos,
+        );
+        const passwordHash = await hashPassword(passwordInicial);
       }
 
       return nuevoEgresado;

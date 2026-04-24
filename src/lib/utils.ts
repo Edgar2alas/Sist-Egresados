@@ -28,3 +28,21 @@ export const ok  = <T>(data: T, status = 200) =>
 
 export const err = (message: string, status = 400) =>
   Response.json({ error: message }, { status });
+
+/** Genera contraseña inicial: CI + iniciales en mayúscula
+ *  Ej: ci="12345678", nombres="Ana", apellidos="Mamani" → "12345678AM"
+ */
+export function generarPasswordInicial(
+  ci: string,
+  nombres: string,
+  apellidoPaterno?: string | null,
+  apellidoMaterno?: string | null,
+  apellidos?: string | null,
+): string {
+  // Primera letra del primer nombre
+  const inicialNombre = nombres.trim()[0]?.toUpperCase() ?? "";
+  // Primera letra del apellido paterno, o primer apellido si no hay paterno
+  const primerApellido = apellidoPaterno?.trim() || apellidos?.trim() || "";
+  const inicialApellido = primerApellido[0]?.toUpperCase() ?? "";
+  return `${ci}${inicialNombre}${inicialApellido}`;
+}

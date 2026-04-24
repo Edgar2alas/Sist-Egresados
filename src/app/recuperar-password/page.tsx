@@ -189,30 +189,47 @@ export default function RecuperarPasswordPage() {
               </div>
 
               {pass1.length > 0 && (
-                <div className="space-y-1">
+                <div className="space-y-2">
                   <div className="flex gap-1">
-                    {[8, 10, 12].map((n, i) => (
+                    {[
+                      pass1.length >= 8,
+                      /[A-Z]/.test(pass1) && /[a-z]/.test(pass1),
+                      /[0-9]/.test(pass1),
+                    ].map((ok, i) => (
                       <div key={i} className={cn(
                         "h-1 flex-1 rounded-full transition-colors",
-                        pass1.length >= n ? (
-                          i === 0 ? "bg-red-500" :
-                          i === 1 ? "bg-amber-500" : "bg-emerald-500"
+                        ok ? (
+                          i === 0 ? "bg-amber-500" :
+                          i === 1 ? "bg-blue-500" : "bg-emerald-500"
                         ) : "bg-slate-700"
                       )} />
                     ))}
                   </div>
-                  <p className="text-xs text-slate-500">
-                    {pass1.length < 8  ? "Muy corta" :
-                     pass1.length < 10 ? "Débil" :
-                     pass1.length < 12 ? "Aceptable" : "Segura"}
-                  </p>
+                  <div className="space-y-1">
+                    {[
+                      { ok: pass1.length >= 8,          txt: "Mínimo 8 caracteres" },
+                      { ok: /[A-Z]/.test(pass1) && /[a-z]/.test(pass1), txt: "Mayúscula y minúscula" },
+                      { ok: /[0-9]/.test(pass1),        txt: "Al menos un número" },
+                    ].map(({ ok: cumple, txt }) => (
+                      <p key={txt} className={cn("text-xs flex items-center gap-1.5",
+                        cumple ? "text-emerald-400" : "text-slate-500")}>
+                        <span>{cumple ? "✓" : "○"}</span> {txt}
+                      </p>
+                    ))}
+                  </div>
                 </div>
               )}
-
               {error && <p className="error-box">{error}</p>}
               <button
                 onClick={cambiarPassword}
-                disabled={loading || pass1.length < 8 || pass1 !== pass2}
+                disabled={
+                  loading ||
+                  pass1.length < 8 ||
+                  pass1 !== pass2 ||
+                  !/[A-Z]/.test(pass1) ||
+                  !/[a-z]/.test(pass1) ||
+                  !/[0-9]/.test(pass1)
+                }
                 className="btn-primary w-full py-3">
                 {loading ? <><span className="spinner" /> Actualizando...</> : "Cambiar contraseña"}
               </button>

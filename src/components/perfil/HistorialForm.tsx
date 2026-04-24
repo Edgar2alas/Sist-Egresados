@@ -61,23 +61,45 @@ export default function HistorialForm({ idEgresado, historial, onSuccess }: Prop
 
     setLoading(true);
     try {
-      const fd = new FormData();
-      fd.append("idEgresado",         String(idEgresado));
-      fd.append("empresa",            form.empresa);
-      fd.append("cargo",              form.cargo);
-      fd.append("area",               form.area);
-      fd.append("tipoContrato",       form.tipoContrato);
-      fd.append("ciudad",             form.ciudad);
-      fd.append("sector",             form.sector);
-      fd.append("fechaInicio",        form.fechaInicio);
-      fd.append("fechaFin",           esActual ? "" : form.fechaFin);
-      fd.append("actualmenteTrabaja", String(esActual));
-      if (archivo) fd.append("documento", archivo);
-
       const url    = isEditing ? `/api/historial/${historial.id}` : "/api/historial";
       const method = isEditing ? "PUT" : "POST";
-      const res    = await fetch(url, { method, body: fd });
-      const json   = await res.json();
+
+      let res: Response;
+
+      if (isEditing) {
+        res = await fetch(url, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            idEgresado,
+            empresa:            form.empresa,
+            cargo:              form.cargo,
+            area:               form.area || null,
+            tipoContrato:       form.tipoContrato || null,
+            ciudad:             form.ciudad || null,
+            sector:             form.sector || null,
+            fechaInicio:        form.fechaInicio,
+            fechaFin:           esActual ? null : (form.fechaFin || null),
+            actualmenteTrabaja: esActual,
+          }),
+        });
+      } else {
+        const fd = new FormData();
+        fd.append("idEgresado",         String(idEgresado));
+        fd.append("empresa",            form.empresa);
+        fd.append("cargo",              form.cargo);
+        fd.append("area",               form.area);
+        fd.append("tipoContrato",       form.tipoContrato);
+        fd.append("ciudad",             form.ciudad);
+        fd.append("sector",             form.sector);
+        fd.append("fechaInicio",        form.fechaInicio);
+        fd.append("fechaFin",           esActual ? "" : form.fechaFin);
+        fd.append("actualmenteTrabaja", String(esActual));
+        if (archivo) fd.append("documento", archivo);
+        res = await fetch(url, { method: "POST", body: fd });
+      }
+
+      const json = await res.json();
       if (!res.ok) { setError(json.error); return; }
       if (onSuccess) onSuccess();
       else { router.push("/mi-perfil"); router.refresh(); }

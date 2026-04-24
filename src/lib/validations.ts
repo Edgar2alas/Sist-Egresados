@@ -104,7 +104,11 @@ export const sugerenciaSchema = z.object({
 // ── Usuario ───────────────────────────────────────────────────────────────────
 export const usuarioSchema = z.object({
   correo:            z.string().email("Correo inválido").max(150),
-  password:          z.string().min(8, "Mínimo 8 caracteres"),
+  password: z.string()
+  .min(8, "Mínimo 8 caracteres")
+  .regex(/[A-Z]/, "Debe contener al menos una mayúscula")
+  .regex(/[a-z]/, "Debe contener al menos una minúscula")
+  .regex(/[0-9]/, "Debe contener al menos un número"),
   confirmarPassword: z.string(),
   rol:               z.enum(["admin", "egresado"]),
   estado:            z.enum(["activo", "inactivo", "bloqueado"]),
@@ -120,6 +124,21 @@ export const usuarioEditSchema = z.object({
   nuevaPassword: z.string().min(8).optional().or(z.literal("")),
 });
 
+export const nuevaPasswordSchema = z.object({
+  correo:            z.string().email(),
+  codigo:            z.string().length(6, "El código debe tener 6 dígitos"),
+  nuevaPassword:     z.string()
+    .min(8, "Mínimo 8 caracteres")
+    .regex(/[A-Z]/, "Debe contener al menos una mayúscula")
+    .regex(/[a-z]/, "Debe contener al menos una minúscula")
+    .regex(/[0-9]/, "Debe contener al menos un número"),
+  confirmarPassword: z.string(),
+  tipo:              z.enum(["primer_login", "reset_password"]),
+}).refine(d => d.nuevaPassword === d.confirmarPassword, {
+  message: "Las contraseñas no coinciden",
+  path: ["confirmarPassword"],
+});
+
 // ── Tipos exportados ──────────────────────────────────────────────────────────
 export type LoginInput       = z.infer<typeof loginSchema>;
 export type EgresadoInput    = z.infer<typeof egresadoSchema>;
@@ -128,3 +147,4 @@ export type PostgradoInput   = z.infer<typeof postgradoSchema>;
 export type SugerenciaInput  = z.infer<typeof sugerenciaSchema>;
 export type UsuarioInput     = z.infer<typeof usuarioSchema>;
 export type UsuarioEditInput = z.infer<typeof usuarioEditSchema>;
+export type NuevaPasswordInput = z.infer<typeof nuevaPasswordSchema>;

@@ -115,10 +115,23 @@ export const postgrado = pgTable("postgrado", {
   anioInicio:  integer("anio_inicio").notNull(),
   anioFin:     integer("anio_fin"),
   estado:      postgradoEstadoEnum("estado").notNull().default("En curso"),
+
+  // ── Verificación de documento ─────────────────────────────────────────────
+  verificacionEstado:  varchar("verificacion_estado", { length: 20 }),
+  documentoBinario:    bytea("documento_binario"),
+  documentoNombre:     varchar("documento_nombre",   { length: 255 }),
+  documentoTipo:       varchar("documento_tipo",     { length: 100 }),
+  documentoSubidoEn:   timestamp("documento_subido_en"),
+  verificadoEn:        timestamp("verificado_en"),
+  rechazoMotivo:       text("rechazo_motivo"),
+  esSolicitudCambio:   boolean("es_solicitud_cambio").notNull().default(false),
+  datosPropuestos:     text("datos_propuestos"),
+
   ultimaActualizacion: timestamp("ultima_actualizacion").defaultNow(),
   creadoEn:            timestamp("creado_en").notNull().defaultNow(),
 }, (t) => ({
-  estadoIdx: index("idx_postgrado_estado").on(t.estado),
+  estadoIdx:       index("idx_postgrado_estado").on(t.estado),
+  verificacionIdx: index("idx_postgrado_verificacion").on(t.verificacionEstado),
 }));
 
 // ── sugerencias ───────────────────────────────────────────────────────────────

@@ -32,7 +32,7 @@ Panel admin para aprobar/rechazar cambios de postgrado (similar a verificaciones
 
 🟡 BLOQUE 4 — Sugerencias del egresado (nuevo)
 
-Añadir tabla sugerencias a BD (ya existe en schema, verificar)
+Añadir tabla sugerencias BD (ya existe en schema, verificar)
 Página/sección en perfil del egresado para enviar sugerencias
 Vista en panel admin para leer sugerencias
 
