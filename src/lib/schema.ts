@@ -28,6 +28,9 @@ export const verificacionEstadoEnum = pgEnum("verificacion_estado_enum", [
   "pendiente", "aprobado", "rechazado",
 ]);
 
+// ── NUEVO — Bloque 0: tipo de persona ─────────────────────────────────────────
+export const personaTipoEnum = pgEnum("persona_tipo_enum", ["Titulado", "Egresado"]);
+
 export const PLANES_ESTUDIO = ["1994", "2008", "2020"] as const;
 export type PlanEstudiosNombre = typeof PLANES_ESTUDIO[number];
 
@@ -65,15 +68,31 @@ export const egresado = pgTable("egresado", {
   mostrarEnDirectorio: boolean("mostrar_en_directorio").notNull().default(false),
   fechaRegistro:       timestamp("fecha_registro").notNull().defaultNow(),
   ultimaActualizacion: timestamp("ultima_actualizacion").defaultNow(),
+
+  // ── NUEVO — Bloque 0 ─────────────────────────────────────────────────────
+  /** Distingue si la persona está titulada o solo egresó sin título */
+  tipo:                 personaTipoEnum("tipo").notNull().default("Titulado"),
+
+  // Campos exclusivos para Egresados (sin título aún)
+  inicioProceso:        boolean("inicio_proceso"),          // ¿Inició proceso de titulación?
+  motivoNoTitulacion:   text("motivo_no_titulacion"),       // Razón por la que no se tituló
+  planeaTitularse:      boolean("planea_titularse"),         // ¿Planea titularse en el futuro?
+
+  // Campos compartidos — redes sociales y metadata adicional
+  facebook:             varchar("facebook",             { length: 200 }),
+  linkedin:             varchar("linkedin",             { length: 200 }),
+  areaEspecializacion:  varchar("area_especializacion", { length: 150 }),
+  observaciones:        text("observaciones"),
+  estadoLaboral: varchar("estado_laboral", { length: 30 }),
 }, (t) => ({
   ciIdx:         uniqueIndex("egresado_ci_idx").on(t.ci),
   anioEgresoIdx: index("idx_egresado_anio_egreso").on(t.anioEgreso),
   generoIdx:     index("idx_egresado_genero").on(t.genero),
   planNombreIdx: index("idx_egresado_plan_nombre").on(t.planEstudiosNombre),
+  tipoIdx:       index("idx_egresado_tipo").on(t.tipo),   // NUEVO
 }));
 
 // ── historial_laboral ────────────────────────────────────────────────────────
-// ingresoAproximado eliminado — campo privado innecesario en el formulario
 export const historialLaboral = pgTable("historial_laboral", {
   id:          serial("id").primaryKey(),
   idEgresado:  integer("id_egresado").notNull()
@@ -209,6 +228,7 @@ export type NuevoUsuario      = typeof usuario.$inferInsert;
 export type VerificacionToken = typeof verificacionTokens.$inferSelect;
 export type NuevoToken        = typeof verificacionTokens.$inferInsert;
 
+// ── Helpers ───────────────────────────────────────────────────────────────────
 export const fmtGestion = (anio: number | null | undefined, semestre: number | null | undefined): string => {
   if (!anio) return "—";
   if (!semestre) return String(anio);

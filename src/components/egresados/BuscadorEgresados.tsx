@@ -17,6 +17,7 @@ interface SP {
   modalidad?:      string;
   tienePostgrado?: string;
   page?:           string;
+  tipo?:           string;
 }
 
 interface Props {
@@ -30,6 +31,7 @@ const LABEL_MAP: Record<string, string> = {
   anioTitulacion: "Año titulación", conEmpleo: "Empleo",
   genero: "Género", sector: "Sector", ciudad: "Ciudad",
   modalidad: "Modalidad", tienePostgrado: "Postgrado",
+  tipo: "Tipo",
 };
 const BOOL_LABEL: Record<string, string> = { "true": "Sí", "false": "No" };
 
@@ -53,6 +55,7 @@ export default function BuscadorEgresados({ planes, searchParams, ciudades = [] 
     ciudad:         searchParams.ciudad         ?? "",
     modalidad:      searchParams.modalidad      ?? "",
     tienePostgrado: searchParams.tienePostgrado ?? "",
+    tipo:           searchParams.tipo ?? "",
   });
 
   const set = (k: keyof SP, v: string) => setForm(f => ({ ...f, [k]: v }));
@@ -202,6 +205,13 @@ export default function BuscadorEgresados({ planes, searchParams, ciudades = [] 
             className="mt-4 pt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"
             style={{ borderTop: "1px solid var(--borde)" }}
           >
+            <Field label="Tipo">
+              <select value={form.tipo ?? ""} onChange={e => set("tipo", e.target.value)} style={fieldCss}>
+                <option value="">Todos</option>
+                <option value="Titulado">Titulado</option>
+                <option value="Egresado">Egresado (sin título)</option>
+              </select>
+            </Field>
             <Field label="Género">
               <select value={form.genero} onChange={e => set("genero", e.target.value)} style={fieldCss}>
                 <option value="">Todos</option>

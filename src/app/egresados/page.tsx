@@ -24,6 +24,7 @@ interface SP {
   modalidad?:      string;
   tienePostgrado?: string;
   page?:           string;
+  tipo?:           string;
 }
 
 async function getData(sp: SP) {
@@ -39,6 +40,7 @@ async function getData(sp: SP) {
   if (sp.anioTitulacion) conds.push(sql`${egresado.anioTitulacion} = ${parseInt(sp.anioTitulacion)}`);
   if (sp.genero)         conds.push(sql`${egresado.genero} = ${sp.genero}`);
   if (sp.modalidad)      conds.push(sql`${egresado.modalidadTitulacion} = ${sp.modalidad}`);
+  if (sp.tipo) conds.push(sql`${egresado.tipo}::text = ${sp.tipo}`);
 
   // Filtro por empleo
   if (sp.conEmpleo === "true")
@@ -82,6 +84,7 @@ async function getData(sp: SP) {
     genero:              egresado.genero,
     correoElectronico:   egresado.correoElectronico,
     celular:             egresado.celular,
+    tipo:                egresado.tipo,
     tieneEmpleo: sql<boolean>`EXISTS(
       SELECT 1 FROM historial_laboral h
       WHERE h.id_egresado=${egresado.id} AND h.fecha_fin IS NULL
@@ -159,6 +162,7 @@ export default async function EgresadosPage({ searchParams }: { searchParams: SP
                   <th>CI</th>
                   <th>Plan · Modalidad</th>
                   <th>Titulación</th>
+                  <th>Tipo</th>
                   <th>Empleo</th>
                   <th>Postgrado</th>
                   <th className="text-right">Acciones</th>
@@ -194,6 +198,22 @@ export default async function EgresadosPage({ searchParams }: { searchParams: SP
                     <td className="text-sm" style={{ color: "var(--gris-grafito)" }}>
                       {r.anioTitulacion ?? (r.anioEgreso ? `Egreso ${r.anioEgreso}` : "—")}
                     </td>
+                    <td>
+                    <span
+                      className="badge"
+                      style={r.tipo === "Titulado" ? {
+                        background: "var(--turquesa-light)",
+                        color: "var(--turquesa-dark)",
+                        border: "1px solid #99e6e7",
+                      } : {
+                        background: "var(--naranja-light)",
+                        color: "var(--naranja)",
+                        border: "1px solid #fed7aa",
+                      }}
+                    >
+                      {r.tipo}
+                    </span>
+                  </td>
                     <td>
                       <span
                         className="badge"

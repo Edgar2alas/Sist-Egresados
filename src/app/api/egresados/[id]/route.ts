@@ -1,3 +1,6 @@
+// src/app/api/egresados/[id]/route.ts
+// Actualizado — Bloque 0: soporta tipo, campos exclusivos Egresado y campos compartidos
+
 import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { egresado, historialLaboral } from "@/lib/schema";
@@ -51,30 +54,42 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
       .filter(Boolean).join(" ") || d.apellidos;
 
     const [updated] = await db.update(egresado).set({
-      nombres:             d.nombres,
+      // Bloque 0
+      tipo:                 d.tipo,
+      // Datos personales
+      nombres:              d.nombres,
       apellidos,
-      apellidoPaterno:     d.apellidoPaterno     ?? null,
-      apellidoMaterno:     d.apellidoMaterno     ?? null,
-      ci:                  d.ci,
-      nacionalidad:        d.nacionalidad        ?? null,
-      genero:              d.genero              ?? null,
-      correoElectronico:   d.correoElectronico   ?? null,
-      celular:             d.celular             ?? null,
-      telefono:            d.celular             ?? null,
-      direccion:           d.direccion           ?? null,
-      tituloAcademico:     d.tituloAcademico     ?? null,
-      fechaNacimiento:     d.fechaNacimiento,
-      // Legacy: fechaGraduacion requerida en BD
-      fechaGraduacion:     d.anioTitulacion
+      apellidoPaterno:      d.apellidoPaterno     ?? null,
+      apellidoMaterno:      d.apellidoMaterno     ?? null,
+      ci:                   d.ci,
+      nacionalidad:         d.nacionalidad        ?? null,
+      genero:               d.genero              ?? null,
+      correoElectronico:    d.correoElectronico   ?? null,
+      celular:              d.celular             ?? null,
+      telefono:             d.celular             ?? null,
+      direccion:            d.direccion           ?? null,
+      tituloAcademico:      d.tituloAcademico     ?? null,
+      fechaNacimiento:      d.fechaNacimiento,
+      // Redes y área (Bloque 0 compartidos)
+      facebook:             d.facebook            ?? null,
+      linkedin:             d.linkedin            ?? null,
+      areaEspecializacion:  d.areaEspecializacion ?? null,
+      observaciones:        d.observaciones       ?? null,
+      estadoLaboral:        d.estadoLaboral       ?? null,
+      // Legacy
+      fechaGraduacion:      d.anioTitulacion
         ? `${d.anioTitulacion}-01-01`
         : d.fechaNacimiento,
-      planEstudiosNombre:  d.planEstudiosNombre  ?? null,
-      anioIngreso:         d.anioIngreso         ?? null,
-      anioEgreso:          d.anioEgreso          ?? null,
-      anioTitulacion:      d.anioTitulacion      ?? null,
-      // Drizzle numeric espera string o null
-      promedio:            d.promedio != null ? String(d.promedio) : null,
-      modalidadTitulacion: d.modalidadTitulacion ?? null,
+      planEstudiosNombre:   d.planEstudiosNombre  ?? null,
+      anioIngreso:          d.anioIngreso         ?? null,
+      anioEgreso:           d.anioEgreso          ?? null,
+      anioTitulacion:       d.anioTitulacion      ?? null,
+      promedio:             d.promedio != null ? String(d.promedio) : null,
+      modalidadTitulacion:  d.modalidadTitulacion ?? null,
+      // Campos exclusivos Egresado (Bloque 0)
+      inicioProceso:        d.tipo === "Egresado" ? (d.inicioProceso ?? null) : null,
+      motivoNoTitulacion:   d.tipo === "Egresado" ? (d.motivoNoTitulacion ?? null) : null,
+      planeaTitularse:      d.tipo === "Egresado" ? (d.planeaTitularse ?? null) : null,
     })
     .where(eq(egresado.id, id))
     .returning();

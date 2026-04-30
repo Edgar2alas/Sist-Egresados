@@ -1,3 +1,6 @@
+// src/app/api/egresados/route.ts
+// Actualizado — Bloque 0: soporta tipo, campos exclusivos Egresado y campos compartidos
+
 import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { egresado, usuario } from "@/lib/schema";
@@ -5,7 +8,6 @@ import { eq, ilike, and, or, sql, desc } from "drizzle-orm";
 import { getSession, hashPassword } from "@/lib/auth";
 import { egresadoSchema } from "@/lib/validations";
 import { ok, err, generarPasswordInicial } from "@/lib/utils";
-
 
 export async function GET(req: NextRequest) {
   try {
@@ -18,6 +20,8 @@ export async function GET(req: NextRequest) {
     const anio     = sp.get("anioEgreso");
     const empleo   = sp.get("conEmpleo");
     const genero   = sp.get("genero");
+    // Bloque 0: filtro por tipo
+    const tipo     = sp.get("tipo");
     const page     = Math.max(1, parseInt(sp.get("page") ?? "1"));
     const pageSize = 12;
 
@@ -30,6 +34,7 @@ export async function GET(req: NextRequest) {
     if (plan)   conds.push(ilike(egresado.planEstudiosNombre, `%${plan}%`));
     if (anio)   conds.push(sql`${egresado.anioEgreso} = ${parseInt(anio)}`);
     if (genero) conds.push(sql`${egresado.genero} = ${genero}`);
+    if (tipo)   conds.push(sql`${egresado.tipo} = ${tipo}`);
     if (empleo === "true")
       conds.push(sql`EXISTS(SELECT 1 FROM historial_laboral h WHERE h.id_egresado=${egresado.id} AND h.fecha_fin IS NULL)`);
     if (empleo === "false")
@@ -50,10 +55,12 @@ export async function GET(req: NextRequest) {
       ci:                  egresado.ci,
       celular:             egresado.celular,
       genero:              egresado.genero,
+      tipo:                egresado.tipo,           // Bloque 0
       planEstudiosNombre:  egresado.planEstudiosNombre,
       anioEgreso:          egresado.anioEgreso,
       anioTitulacion:      egresado.anioTitulacion,
       modalidadTitulacion: egresado.modalidadTitulacion,
+      areaEspecializacion: egresado.areaEspecializacion, // Bloque 0
       tieneEmpleo: sql<boolean>`EXISTS(
         SELECT 1 FROM historial_laboral h
         WHERE h.id_egresado=${egresado.id} AND h.fecha_fin IS NULL
@@ -98,43 +105,43 @@ export async function POST(req: NextRequest) {
         .filter(Boolean).join(" ") || d.apellidos;
 
       const [nuevoEgresado] = await tx.insert(egresado).values({
-        nombres:             d.nombres,
+        // Bloque 0
+        tipo:                 d.tipo,
+        // Datos personales
+        nombres:              d.nombres,
         apellidos,
-        apellidoPaterno:     d.apellidoPaterno     ?? null,
-        apellidoMaterno:     d.apellidoMaterno     ?? null,
-        ci:                  d.ci,
-        nacionalidad:        d.nacionalidad        ?? null,
-        genero:              d.genero              ?? null,
-        correoElectronico:   d.correoElectronico   ?? null,
-        celular:             d.celular             ?? null,
-        telefono:            d.celular             ?? null,
-        direccion:           d.direccion           ?? null,
-        tituloAcademico:     d.tituloAcademico     ?? null,
-        fechaNacimiento:     d.fechaNacimiento,
-        // Legacy: fechaGraduacion requerida en BD — usar año titulación o nacimiento
-        fechaGraduacion:     d.anioTitulacion
+        apellidoPaterno:      d.apellidoPaterno     ?? null,
+        apellidoMaterno:      d.apellidoMaterno     ?? null,
+        ci:                   d.ci,
+        nacionalidad:         d.nacionalidad        ?? null,
+        genero:               d.genero              ?? null,
+        correoElectronico:    d.correoElectronico   ?? null,
+        celular:              d.celular             ?? null,
+        telefono:             d.celular             ?? null,
+        direccion:            d.direccion           ?? null,
+        tituloAcademico:      d.tituloAcademico     ?? null,
+        fechaNacimiento:      d.fechaNacimiento,
+        // Redes y área (Bloque 0 compartidos)
+        facebook:             d.facebook            ?? null,
+        linkedin:             d.linkedin            ?? null,
+        areaEspecializacion:  d.areaEspecializacion ?? null,
+        observaciones:        d.observaciones       ?? null,
+        estadoLaboral:        d.estadoLaboral       ?? null,
+        // Legacy
+        fechaGraduacion:      d.anioTitulacion
           ? `${d.anioTitulacion}-01-01`
           : d.fechaNacimiento,
-        planEstudiosNombre:  d.planEstudiosNombre  ?? null,
-        anioIngreso:         d.anioIngreso         ?? null,
-        anioEgreso:          d.anioEgreso          ?? null,
-        anioTitulacion:      d.anioTitulacion      ?? null,
-        // Drizzle numeric espera string o null
-        promedio:            d.promedio != null ? String(d.promedio) : null,
-        modalidadTitulacion: d.modalidadTitulacion ?? null,
+        planEstudiosNombre:   d.planEstudiosNombre  ?? null,
+        anioIngreso:          d.anioIngreso         ?? null,
+        anioEgreso:           d.anioEgreso          ?? null,
+        anioTitulacion:       d.anioTitulacion      ?? null,
+        promedio:             d.promedio != null ? String(d.promedio) : null,
+        modalidadTitulacion:  d.modalidadTitulacion ?? null,
+        // Campos exclusivos Egresado (Bloque 0) — solo si tipo=Egresado
+        inicioProceso:        d.tipo === "Egresado" ? (d.inicioProceso ?? null) : null,
+        motivoNoTitulacion:   d.tipo === "Egresado" ? (d.motivoNoTitulacion ?? null) : null,
+        planeaTitularse:      d.tipo === "Egresado" ? (d.planeaTitularse ?? null) : null,
       }).returning();
-
-      // Auto-crear usuario si tiene correo — contraseña inicial = CI
-      if (d.correoElectronico && nuevoEgresado) {
-        const passwordInicial = generarPasswordInicial(
-          d.ci,
-          d.nombres,
-          d.apellidoPaterno,
-          d.apellidoMaterno,
-          d.apellidos,
-        );
-        const passwordHash = await hashPassword(passwordInicial);
-      }
 
       return nuevoEgresado;
     });

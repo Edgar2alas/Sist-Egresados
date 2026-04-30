@@ -7,8 +7,11 @@ export const loginSchema = z.object({
   password: z.string().min(1, "Contraseña requerida"),
 });
 
-// ── Egresado ──────────────────────────────────────────────────────────────────
+// ── Egresado — Bloque 0: incluye campo tipo y campos condicionales ─────────────
 export const egresadoSchema = z.object({
+  // ── Tipo (Bloque 0) ────────────────────────────────────────────────────────
+  tipo: z.enum(["Titulado", "Egresado"]).default("Titulado"),
+
   // RF-02: Datos personales
   nombres:           z.string().min(2, "Requerido").max(100),
   apellidos:         z.string().min(2, "Requerido").max(100),
@@ -22,6 +25,13 @@ export const egresadoSchema = z.object({
   direccion:         z.string().max(200).optional().nullable(),
   tituloAcademico:   z.string().max(150).optional().nullable(),
   fechaNacimiento:   z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Fecha inválida"),
+
+  // Redes sociales (Bloque 0 — compartidos)
+  facebook:            z.string().max(200).optional().nullable(),
+  linkedin:            z.string().max(200).optional().nullable(),
+  areaEspecializacion: z.string().max(150).optional().nullable(),
+  observaciones:       z.string().optional().nullable(),
+  estadoLaboral: z.enum(["Empleado", "Desempleado", "Independiente"]).optional().nullable(),
 
   // Plan de estudios
   planEstudiosNombre: z.string().max(50).optional().nullable(),
@@ -38,22 +48,36 @@ export const egresadoSchema = z.object({
   modalidadTitulacion: z.enum([
     "Tesis", "Proyecto de grado", "Trabajo dirigido", "Excelencia",
   ]).optional().nullable(),
-}).refine(
+
+  // Bloque 0 — campos exclusivos de Egresado (sin título)
+  inicioProceso:       z.boolean().optional().nullable(),
+  motivoNoTitulacion:  z.string().max(500).optional().nullable(),
+  planeaTitularse:     z.boolean().optional().nullable(),
+})
+.refine(
   d => {
     if (!d.anioEgreso || !d.anioIngreso) return true;
     return d.anioEgreso >= d.anioIngreso;
   },
   { message: "El año de egreso no puede ser anterior al de ingreso", path: ["anioEgreso"] }
-).refine(
+)
+.refine(
   d => {
     if (!d.anioTitulacion || !d.anioEgreso) return true;
     return d.anioTitulacion >= d.anioEgreso;
   },
   { message: "El año de titulación no puede ser anterior al de egreso", path: ["anioTitulacion"] }
+)
+.refine(
+  d => {
+    // Si es Titulado, debe tener año de titulación
+    if (d.tipo === "Titulado" && !d.anioTitulacion) return false;
+    return true;
+  },
+  { message: "Un titulado debe tener año de titulación", path: ["anioTitulacion"] }
 );
 
 // ── Historial laboral (RF-06) ─────────────────────────────────────────────────
-// ingresoAproximado eliminado del formulario y validación
 export const historialSchema = z.object({
   idEgresado:         z.number().int().positive(),
   empresa:            z.string().min(2, "Requerido").max(150),
@@ -140,11 +164,11 @@ export const nuevaPasswordSchema = z.object({
 });
 
 // ── Tipos exportados ──────────────────────────────────────────────────────────
-export type LoginInput       = z.infer<typeof loginSchema>;
-export type EgresadoInput    = z.infer<typeof egresadoSchema>;
-export type HistorialInput   = z.infer<typeof historialSchema>;
-export type PostgradoInput   = z.infer<typeof postgradoSchema>;
-export type SugerenciaInput  = z.infer<typeof sugerenciaSchema>;
-export type UsuarioInput     = z.infer<typeof usuarioSchema>;
-export type UsuarioEditInput = z.infer<typeof usuarioEditSchema>;
+export type LoginInput         = z.infer<typeof loginSchema>;
+export type EgresadoInput      = z.infer<typeof egresadoSchema>;
+export type HistorialInput     = z.infer<typeof historialSchema>;
+export type PostgradoInput     = z.infer<typeof postgradoSchema>;
+export type SugerenciaInput    = z.infer<typeof sugerenciaSchema>;
+export type UsuarioInput       = z.infer<typeof usuarioSchema>;
+export type UsuarioEditInput   = z.infer<typeof usuarioEditSchema>;
 export type NuevaPasswordInput = z.infer<typeof nuevaPasswordSchema>;
