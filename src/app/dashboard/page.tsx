@@ -10,11 +10,13 @@ export default async function DashboardPage() {
   return (
     <AdminLayout correo={session.correo}>
       <div className="page">
-        <div>
-          <h1 className="page-title">Dashboard</h1>
-          <p className="page-sub">
-            Estadísticas y seguimiento de egresados — Carrera de Estadística UMSA
-          </p>
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h1 className="page-title">Dashboard</h1>
+            <p className="page-sub">
+              Estadísticas y seguimiento de egresados — Carrera de Estadística UMSA
+            </p>
+          </div>
         </div>
         <DashboardClient />
       </div>

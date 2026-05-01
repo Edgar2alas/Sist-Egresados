@@ -74,32 +74,95 @@ export async function GET(req: NextRequest) {
 
     // ── Exportar Excel ──────────────────────────────────────────────────────
     if (exportar === "excel") {
+       const fechaGen = new Date().toLocaleDateString("es-BO", {
+        day: "2-digit", month: "long", year: "numeric",
+      });
+
+      const filtrosDesc = [
+        anio      && `Año egreso: ${anio}`,
+        plan      && `Plan: ${plan}`,
+        genero    && `Género: ${genero}`,
+        tipo      && `Tipo: ${tipo}`,
+        modalidad && `Modalidad: ${modalidad}`,
+        anioTitulacionDesde && `Titulación desde: ${anioTitulacionDesde}`,
+        anioTitulacionHasta && `Titulación hasta: ${anioTitulacionHasta}`,
+        sector    && `Sector: ${sector}`,
+        empleo === "true"  && "Con empleo: Sí",
+        empleo === "false" && "Con empleo: No",
+      ].filter(Boolean).join(", ") || "Ninguno";
+
       const excelRows = rows.map(r => ({
-        "Tipo":                 r.tipo ?? "",
-        "Nombres":              r.nombres,
-        "Apellido Paterno":     r.apellidoPaterno ?? r.apellidos,
-        "Apellido Materno":     r.apellidoMaterno ?? "",
-        "CI":                   r.ci,
-        "Correo":               r.correoElectronico ?? "",
-        "Celular":              r.celular ?? "",
-        "Género":               r.genero ?? "",
-        "Plan de Estudios":     r.planEstudiosNombre ? `Plan ${r.planEstudiosNombre}` : "",
-        "Modalidad Titulación": r.modalidadTitulacion ?? "",
-        "Año Titulación":       r.anioTitulacion ?? "",
-        "Año Egreso":           r.anioEgreso ?? "",
-        "Ciudad Residencia":    r.ciudadResidencia ?? "",
-        "Región Residencia":    r.regionResidencia ?? "",
-        "Tiene Empleo":         r.tieneEmpleo ? "Sí" : "No",
+        "Tipo":                  r.tipo ?? "",
+        "Apellido Paterno":      r.apellidoPaterno ?? r.apellidos,
+        "Apellido Materno":      r.apellidoMaterno ?? "",
+        "Nombres":               r.nombres,
+        "CI":                    r.ci,
+        "Correo":                r.correoElectronico ?? "",
+        "Celular":               r.celular ?? "",
+        "Género":                r.genero ?? "",
+        "Plan de Estudios":      r.planEstudiosNombre ? `Plan ${r.planEstudiosNombre}` : "",
+        "Año Ingreso":           r.anioIngreso ?? "",
+        "Año Egreso":            r.anioEgreso ?? "",
+        "Año Titulación":        r.anioTitulacion ?? "",
+        "Modalidad Titulación":  r.modalidadTitulacion ?? "",
+        "Ciudad Residencia":     r.ciudadResidencia ?? "",
+        "Región / Depto.":       r.regionResidencia ?? "",
+        "Tiene Empleo Actual":   r.tieneEmpleo ? "Sí" : "No",
       }));
 
-      const wb  = XLSX.utils.book_new();
-      const ws  = XLSX.utils.json_to_sheet(excelRows);
-      ws["!cols"] = [
-        {wch:12},{wch:20},{wch:20},{wch:20},{wch:12},{wch:28},{wch:14},
-        {wch:12},{wch:18},{wch:20},{wch:14},{wch:12},{wch:18},{wch:18},{wch:12},
+      const wb = XLSX.utils.book_new();
+
+      // ── Hoja 1: Datos ─────────────────────────────────────────────────
+      // Insertar filas de metadata antes de los datos
+      const metaRows = [
+        ["SISTEMA DE SEGUIMIENTO DE EGRESADOS — CARRERA DE ESTADÍSTICA UMSA"],
+        [`Fecha de generación: ${fechaGen}`],
+        [`Filtros aplicados: ${filtrosDesc}`],
+        [`Total de registros: ${rows.length}`],
+        [], // fila vacía separadora
       ];
+
+      const ws = XLSX.utils.aoa_to_sheet(metaRows);
+
+      // Añadir encabezados y datos debajo de la metadata
+      XLSX.utils.sheet_add_json(ws, excelRows, { origin: 5 }); // fila 6 (0-indexed: 5)
+
+      // Anchos de columna
+      ws["!cols"] = [
+        {wch:12},{wch:20},{wch:20},{wch:20},{wch:14},{wch:28},{wch:14},
+        {wch:12},{wch:18},{wch:12},{wch:12},{wch:14},{wch:20},{wch:18},{wch:18},{wch:16},
+      ];
+
+      // Estilo para la celda del título (A1) — solo ancho, xlsx sin pro no soporta colores
+      ws["!merges"] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 5 } }];
+
       XLSX.utils.book_append_sheet(wb, ws, "Egresados");
-      const buf  = XLSX.write(wb, { type: "buffer", bookType: "xlsx" });
+
+      // ── Hoja 2: Resumen ───────────────────────────────────────────────
+      const conEmpleo  = rows.filter(r => r.tieneEmpleo).length;
+      const sinEmpleo  = rows.length - conEmpleo;
+      const titulados  = rows.filter(r => r.tipo === "Titulado").length;
+      const egresados  = rows.filter(r => r.tipo === "Egresado").length;
+
+      const resumenRows = [
+        ["RESUMEN DEL REPORTE"],
+        [`Fecha: ${fechaGen}`],
+        [`Filtros: ${filtrosDesc}`],
+        [],
+        ["Indicador", "Valor"],
+        ["Total registros",    rows.length],
+        ["Titulados",          titulados],
+        ["Egresados sin título", egresados],
+        ["Con empleo actual",  conEmpleo],
+        ["Sin empleo actual",  sinEmpleo],
+        ["Tasa de empleabilidad", rows.length > 0 ? `${Math.round((conEmpleo / rows.length) * 100)}%` : "N/A"],
+      ];
+
+      const wsResumen = XLSX.utils.aoa_to_sheet(resumenRows);
+      wsResumen["!cols"] = [{wch: 30}, {wch: 20}];
+      XLSX.utils.book_append_sheet(wb, wsResumen, "Resumen");
+
+      const buf   = XLSX.write(wb, { type: "buffer", bookType: "xlsx" });
       const fecha = new Date().toISOString().split("T")[0];
       return new Response(buf, {
         headers: {

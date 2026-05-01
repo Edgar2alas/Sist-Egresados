@@ -11,6 +11,7 @@ export async function middleware(req: NextRequest) {
     "/completar-contacto",
     "/recuperar-password",
     "/directorio",
+    "/noticias",
     "/login",
   ];
   if (publicRoutes.some(r => pathname.startsWith(r))) {
@@ -27,7 +28,8 @@ export async function middleware(req: NextRequest) {
       pathname.startsWith("/api/auth/verificar-contacto") ||
       pathname.startsWith("/api/auth/activar-cuenta") ||
       pathname.startsWith("/api/egresados/destacados") ||
-      pathname.startsWith("/api/egresados/directorio-publico")
+      pathname.startsWith("/api/egresados/directorio-publico") ||
+      pathname.startsWith("/api/noticias")
     ) return NextResponse.next();
 
     const token   = req.cookies.get("eg_token")?.value;

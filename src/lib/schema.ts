@@ -240,6 +240,32 @@ export type NuevoUsuario      = typeof usuario.$inferInsert;
 export type VerificacionToken = typeof verificacionTokens.$inferSelect;
 export type NuevoToken        = typeof verificacionTokens.$inferInsert;
 
+// ── noticias ──────────────────────────────────────────────────────────────────
+export const noticiasTipoEnum = pgEnum("noticias_tipo_enum", [
+  "noticia_institucional",
+  "curso_evento",
+  "noticia_social",
+]);
+
+export const noticias = pgTable("noticias", {
+  id:           serial("id").primaryKey(),
+  titulo:       varchar("titulo",    { length: 200 }).notNull(),
+  cuerpo:       text("cuerpo").notNull(),
+  tipo:         noticiasTipoEnum("tipo").notNull().default("noticia_institucional"),
+  fecha:        date("fecha").notNull(),
+  imagenUrl:    varchar("imagen_url",  { length: 500 }),
+  publicado:    boolean("publicado").notNull().default(false),
+  creadoEn:     timestamp("creado_en").notNull().defaultNow(),
+  actualizadoEn: timestamp("actualizado_en").defaultNow(),
+}, (t) => ({
+  tipoIdx:      index("idx_noticias_tipo").on(t.tipo),
+  publicadoIdx: index("idx_noticias_publicado").on(t.publicado),
+  fechaIdx:     index("idx_noticias_fecha").on(t.fecha),
+}));
+
+export type Noticia     = typeof noticias.$inferSelect;
+export type NuevaNoticia = typeof noticias.$inferInsert;
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 export const fmtGestion = (anio: number | null | undefined, semestre: number | null | undefined): string => {
   if (!anio) return "—";

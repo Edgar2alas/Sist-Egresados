@@ -65,6 +65,15 @@ export default function PublicHeader({ isLoggedIn, correo }: PublicHeaderProps) 
 
           {/* Acción derecha */}
           <div className="hidden md:flex items-center gap-3">
+            <a
+              href="/noticias"
+              className="text-sm font-medium transition-colors px-3 py-1.5 rounded-lg"
+              style={{ color: "rgba(255,255,255,0.70)" }}
+              onMouseEnter={e => (e.currentTarget as HTMLElement).style.color = "var(--turquesa)"}
+              onMouseLeave={e => (e.currentTarget as HTMLElement).style.color = "rgba(255,255,255,0.70)"}
+            >
+              Noticias
+            </a>
             {isLoggedIn ? (
               <div className="flex items-center gap-3">
                 {correo && (

@@ -5,7 +5,7 @@ import { useState } from "react";
 import {
   LayoutDashboard, Users, FileBarChart,
   UserCog, LogOut, GraduationCap, ChevronRight,
-  ShieldCheck, MessageSquare, Menu, X,
+  ShieldCheck, MessageSquare, Menu, X, Newspaper,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -16,8 +16,8 @@ const NAV = [
   { href: "/usuarios",       label: "Usuarios",       icon: UserCog },
   { href: "/verificaciones", label: "Verificaciones", icon: ShieldCheck },
   { href: "/sugerencias",    label: "Sugerencias",    icon: MessageSquare },
+  { href: "/noticias-admin", label: "Noticias",        icon: Newspaper },
 ];
-
 function SidebarContent({ correo, onClose }: { correo?: string; onClose?: () => void }) {
   const pathname = usePathname();
   const router   = useRouter();

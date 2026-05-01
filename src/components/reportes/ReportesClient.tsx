@@ -90,8 +90,17 @@ export default function ReportesClient({ planes }: Props) {
         <button onClick={fetchData} className="btn-primary btn-sm">
           {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Ver resultados"}
         </button>
-        <button onClick={exportExcel} className="btn-slate btn-sm">
-          <Download className="w-3.5 h-3.5" /> Exportar Excel
+        <button onClick={exportExcel} className="btn-slate btn-sm flex items-center gap-2">
+          <Download className="w-3.5 h-3.5" />
+          Exportar Excel
+          {(anio || plan || conEmpleo || genero) && (
+            <span
+              className="text-xs px-1.5 py-0.5 rounded-full font-bold"
+              style={{ background: "var(--turquesa)", color: "white", fontSize: "0.6rem" }}
+            >
+              con filtros
+            </span>
+          )}
         </button>
       </div>
 

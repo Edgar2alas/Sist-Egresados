@@ -256,15 +256,21 @@ export default function LandingLoginPage() {
   const [modalOpen,  setModalOpen]  = useState(false);
   const [egresados,  setEgresados]  = useState<EgresadoData[]>([]);
   const [loadingEg,  setLoadingEg]  = useState(true);
+  const [noticiasPrev, setNoticiasPrev] = useState<any[]>([]);
 
   // Cargar egresados destacados reales al montar
   useEffect(() => {
-    fetch("/api/egresados/destacados")
-      .then(r => r.json())
-      .then(j => { if (j.data) setEgresados(j.data); })
-      .catch(() => {})
-      .finally(() => setLoadingEg(false));
-  }, []);
+      fetch("/api/egresados/destacados")
+        .then(r => r.json())
+        .then(j => { if (j.data) setEgresados(j.data); })
+        .catch(() => {})
+        .finally(() => setLoadingEg(false));
+
+      fetch("/api/noticias?limite=3")
+        .then(r => r.json())
+        .then(j => { if (j.data) setNoticiasPrev(j.data); })
+        .catch(() => {});
+    }, []);
 
   return (
     <>
@@ -553,8 +559,131 @@ export default function LandingLoginPage() {
               Unirme al directorio
             </button>
           </div>
+          
+      {/* CTA para egresados */}
+      <div
+        className="mt-10 rounded-2xl p-8 flex flex-col sm:flex-row items-center gap-6"
+        style={{ background: `linear-gradient(135deg, var(--marino) 0%, #1a3555 100%)`, border: "1px solid rgba(0,165,168,0.20)" }}
+      >
+        <div className="flex-1 text-center sm:text-left">
+          <h3 className="text-xl font-bold text-white mb-2" style={{ fontFamily: "'Source Serif 4', serif" }}>
+            ¿Eres egresado o titulado de la carrera?
+          </h3>
+          <p className="text-sm" style={{ color: "rgba(255,255,255,0.65)" }}>
+            Aparece en este directorio. Los perfiles actualizados se muestran primero
+            y son más visibles para empleadores y proyectos de investigación.
+          </p>
         </div>
-      </section>
+        <button
+          onClick={() => setModalOpen(true)}
+          className="flex items-center gap-2 px-6 py-3 rounded-xl font-semibold text-sm shrink-0 transition-all"
+          style={{ background: "var(--turquesa)", color: "white", boxShadow: "0 4px 16px rgba(0,165,168,0.35)" }}
+          onMouseEnter={e => {
+            (e.currentTarget as HTMLElement).style.background = "var(--turquesa-dark)";
+            (e.currentTarget as HTMLElement).style.transform = "scale(1.02)";
+          }}
+          onMouseLeave={e => {
+            (e.currentTarget as HTMLElement).style.background = "var(--turquesa)";
+            (e.currentTarget as HTMLElement).style.transform = "scale(1)";
+          }}
+        >
+          <LogIn className="w-4 h-4" />
+          Unirme al directorio
+        </button>
+      </div>
+    </div>
+  </section>
+
+  {/* ── Noticias recientes ── */}
+  {noticiasPrev.length > 0 && (
+    <section className="py-16" style={{ background: "var(--blanco)" }}>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-between mb-10">
+          <div>
+            <span
+              className="inline-block px-3 py-1 rounded-full text-xs font-semibold mb-3"
+              style={{ background: "var(--turquesa-light)", color: "var(--turquesa-dark)" }}
+            >
+              Últimas novedades
+            </span>
+            <h2
+              className="text-3xl font-bold"
+              style={{ color: "var(--azul-pizarra)", fontFamily: "'Source Serif 4', serif" }}
+            >
+              Noticias y Eventos
+            </h2>
+          </div>
+
+          <a
+            href="/noticias"
+            className="text-sm font-semibold transition-colors"
+            style={{ color: "var(--turquesa-dark)" }}
+          >
+            Ver todas →
+          </a>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {noticiasPrev.map((n: any) => {
+            const tipoLabel: Record<string, string> = {
+              noticia_institucional: "Institucional",
+              curso_evento: "Curso / Evento",
+              noticia_social: "Social",
+            };
+
+            const tipoColor: Record<string, { bg: string; color: string }> = {
+              noticia_institucional: { bg: "var(--turquesa-light)", color: "var(--turquesa-dark)" },
+              curso_evento: { bg: "rgba(139,92,246,0.10)", color: "#7c3aed" },
+              noticia_social: { bg: "var(--naranja-light)", color: "var(--naranja)" },
+            };
+
+            const tc = tipoColor[n.tipo] ?? tipoColor.noticia_institucional;
+
+            return (
+              <a
+                key={n.id}
+                href="/noticias"
+                className="rounded-2xl p-5 flex flex-col gap-3 transition-all duration-200 hover:-translate-y-0.5"
+                style={{
+                  background: "var(--humo)",
+                  border: "1px solid var(--borde)",
+                  boxShadow: "var(--shadow-sm)",
+                  textDecoration: "none",
+                }}
+              >
+                <span
+                  className="text-xs font-semibold px-2.5 py-1 rounded-full w-fit"
+                  style={{ background: tc.bg, color: tc.color }}
+                >
+                  {tipoLabel[n.tipo] ?? n.tipo}
+                </span>
+
+                <p
+                  className="font-bold text-sm leading-snug"
+                  style={{ color: "var(--azul-pizarra)", fontFamily: "'Source Serif 4', serif" }}
+                >
+                  {n.titulo}
+                </p>
+
+                <p className="text-xs leading-relaxed" style={{ color: "var(--grafito)" }}>
+                  {n.cuerpo.slice(0, 120)}{n.cuerpo.length > 120 ? "…" : ""}
+                </p>
+
+                <p className="text-xs mt-auto" style={{ color: "var(--placeholder)" }}>
+                  {new Date(n.fecha).toLocaleDateString("es-BO", {
+                    day: "2-digit",
+                    month: "short",
+                    year: "numeric",
+                  })}
+                </p>
+              </a>
+            );
+          })}
+        </div>
+      </div>
+    </section>
+  )}
+      
     </>
   );
 }

@@ -178,6 +178,18 @@ export const contactoSchema = z.object({
 
 export type ContactoInput = z.infer<typeof contactoSchema>;
 
+// ── Noticias ──────────────────────────────────────────────────────────────────
+export const noticiaSchema = z.object({
+  titulo:    z.string().min(3, "Mínimo 3 caracteres").max(200),
+  cuerpo:    z.string().min(10, "Mínimo 10 caracteres"),
+  tipo:      z.enum(["noticia_institucional", "curso_evento", "noticia_social"]),
+  fecha:     z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Fecha inválida"),
+  imagenUrl: z.string().url("URL inválida").max(500).optional().nullable(),
+  publicado: z.boolean().default(false),
+});
+
+export type NoticiaInput = z.infer<typeof noticiaSchema>;
+
 // ── Tipos exportados ──────────────────────────────────────────────────────────
 export type LoginInput         = z.infer<typeof loginSchema>;
 export type EgresadoInput      = z.infer<typeof egresadoSchema>;

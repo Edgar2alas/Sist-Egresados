@@ -1,4 +1,5 @@
 "use client";
+import { useRef } from "react";
 import { useState, useEffect, useCallback } from "react";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
@@ -6,7 +7,7 @@ import {
 } from "recharts";
 import {
   GraduationCap, Users, TrendingUp, Clock, Briefcase,
-  Filter, RefreshCw, Download,
+  Filter, RefreshCw, Download, FileDown,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -137,7 +138,8 @@ function TablaCohorte({ data }: { data: any[] }) {
               <td style={{ padding: "8px 10px" }}>
                 <span style={{
                   background: "var(--turquesa-light)", color: "var(--turquesa-dark)",
-                  padding: "1px 8px", borderRadius: "9999px", fontSize: "0.72rem", fontWeight: 600,
+                  padding: "2px 8px", borderRadius: "9999px", fontSize: "0.72rem", fontWeight: 600,
+                  display: "inline-flex", alignItems: "center", lineHeight: 1,
                 }}>
                   {r.titulados}
                 </span>
@@ -145,7 +147,8 @@ function TablaCohorte({ data }: { data: any[] }) {
               <td style={{ padding: "8px 10px" }}>
                 <span style={{
                   background: "var(--naranja-light)", color: "var(--naranja)",
-                  padding: "1px 8px", borderRadius: "9999px", fontSize: "0.72rem", fontWeight: 600,
+                  padding: "2px 8px", borderRadius: "9999px", fontSize: "0.72rem", fontWeight: 600,
+                  display: "inline-flex", alignItems: "center", lineHeight: 1,
                 }}>
                   {r.egresados}
                 </span>
@@ -194,8 +197,162 @@ export default function DashboardClient() {
   const [sector,     setSector]     = useState("");
   const [modalidad,  setModalidad]  = useState("");
   const [tipo,       setTipo]       = useState("");
+  
 
+  const dashboardRef = useRef<HTMLDivElement>(null);
   const years = Array.from({ length: new Date().getFullYear() - 1997 }, (_, i) => 1998 + i).reverse();
+
+  const exportarPDF = async () => {
+    const el = dashboardRef.current;
+    if (!el || !data) return;
+
+    // Carga dinámica para no aumentar el bundle
+    const [{ default: html2canvas }, { default: jsPDF }] = await Promise.all([
+      import("html2canvas"),
+      import("jspdf"),
+    ]);
+
+    const fechaGen = new Date().toLocaleDateString("es-BO", {
+      day: "2-digit", month: "long", year: "numeric",
+    });
+
+    const filtrosAplicados = [
+      anioDesde && `Desde ${anioDesde}`,
+      anioHasta && `Hasta ${anioHasta}`,
+      tipo      && `Tipo: ${tipo}`,
+      sector    && `Sector: ${sector}`,
+      modalidad && `Modalidad: ${modalidad}`,
+    ].filter(Boolean).join(" · ") || "Sin filtros";
+
+    // Capturar el contenido del dashboard
+const canvas = await html2canvas(el, {
+      scale: 2,
+      useCORS: true,
+      backgroundColor: "#f8fafc",
+      logging: false,
+      windowWidth: el.scrollWidth,
+      windowHeight: el.scrollHeight,
+      onclone: (doc) => {
+        // Forzar que todos los textos truncados sean visibles en la captura
+        doc.querySelectorAll<HTMLElement>(".truncate, .line-clamp-3").forEach(el => {
+          el.style.overflow = "visible";
+          el.style.whiteSpace = "normal";
+          el.style.webkitLineClamp = "unset";
+        });
+        // Forzar que los selects y inputs no queden cortados
+        doc.querySelectorAll<HTMLElement>("select, input").forEach(el => {
+          el.style.overflow = "visible";
+        });
+      },
+    });
+
+    const imgData = canvas.toDataURL("image/png");
+    const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+
+    const pageW = pdf.internal.pageSize.getWidth();
+    const pageH = pdf.internal.pageSize.getHeight();
+    const margin = 14;
+
+    // ── Encabezado institucional ──────────────────────────────────────────
+    // Banda superior turquesa
+    pdf.setFillColor(0, 165, 168);
+    pdf.rect(0, 0, pageW, 18, "F");
+
+    // Título en la banda
+    pdf.setTextColor(255, 255, 255);
+    pdf.setFontSize(13);
+    pdf.setFont("helvetica", "bold");
+    pdf.text("Carrera de Estadística — UMSA", margin, 12);
+
+    // Subtítulo derecha
+    pdf.setFontSize(8);
+    pdf.setFont("helvetica", "normal");
+    pdf.text("Universidad Mayor de San Andrés", pageW - margin, 12, { align: "right" });
+
+    // ── Título del informe ────────────────────────────────────────────────
+    pdf.setTextColor(30, 41, 59);
+    pdf.setFontSize(15);
+    pdf.setFont("helvetica", "bold");
+    pdf.text("Dashboard — Informe de Seguimiento de Egresados", margin, 30);
+
+    // Línea divisoria
+    pdf.setDrawColor(0, 165, 168);
+    pdf.setLineWidth(0.5);
+    pdf.line(margin, 33, pageW - margin, 33);
+
+    // ── Metadata ──────────────────────────────────────────────────────────
+    pdf.setFontSize(8);
+    pdf.setFont("helvetica", "normal");
+    pdf.setTextColor(71, 85, 105);
+    pdf.text(`Fecha de generación: ${fechaGen}`, margin, 39);
+    pdf.text(`Filtros aplicados: ${filtrosAplicados}`, margin, 44);
+
+    const kpis = data?.kpis ?? {};
+    pdf.text(
+      `Titulados registrados: ${kpis.totalTitulados ?? 0}   |   Egresados: ${kpis.totalEgresados ?? 0}   |   Empleabilidad: ${kpis.tasaEmpleabilidadTitulados ?? 0}%`,
+      margin, 49,
+    );
+
+    // ── Imagen del dashboard capturado ────────────────────────────────────
+    const contentTop = 55;
+    const availH = pageH - contentTop - 14; // margen inferior
+    const availW = pageW - margin * 2;
+
+    const imgW = canvas.width;
+    const imgH = canvas.height;
+    const ratio = Math.min(availW / imgW, (availH * 3) / imgH); // múltiples páginas si hace falta
+
+    const drawW = imgW * ratio;
+
+    // Recortar en páginas
+    const pageImgH = availH / ratio; // altura de imagen por página (en px)
+    let offsetPx = 0;
+    let firstPage = true;
+
+    while (offsetPx < imgH) {
+      if (!firstPage) {
+        pdf.addPage();
+
+        // Banda encabezado en páginas siguientes
+        pdf.setFillColor(0, 165, 168);
+        pdf.rect(0, 0, pageW, 10, "F");
+        pdf.setTextColor(255, 255, 255);
+        pdf.setFontSize(8);
+        pdf.setFont("helvetica", "bold");
+        pdf.text("Carrera de Estadística — UMSA · Dashboard Egresados", margin, 7);
+      }
+
+      const sliceH = Math.min(pageImgH, imgH - offsetPx);
+
+      // Crear canvas recortado
+      const sliceCanvas = document.createElement("canvas");
+      sliceCanvas.width  = imgW;
+      sliceCanvas.height = sliceH;
+      const ctx = sliceCanvas.getContext("2d")!;
+      ctx.drawImage(canvas, 0, -offsetPx);
+      const sliceData = sliceCanvas.toDataURL("image/png");
+
+      const yStart = firstPage ? contentTop : 13;
+      pdf.addImage(sliceData, "PNG", margin, yStart, drawW, sliceH * ratio);
+
+      offsetPx += sliceH;
+      firstPage = false;
+    }
+
+    // ── Pie de página en última página ────────────────────────────────────
+    pdf.setFontSize(7);
+    pdf.setFont("helvetica", "normal");
+    pdf.setTextColor(148, 163, 184);
+    pdf.text(
+      `Sistema de Seguimiento de Egresados · Carrera de Estadística UMSA · Generado el ${fechaGen}`,
+      pageW / 2,
+      pageH - 6,
+      { align: "center" },
+    );
+
+    const fileName = `dashboard_egresados_${new Date().toISOString().split("T")[0]}.pdf`;
+    pdf.save(fileName);
+  };
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -239,6 +396,7 @@ export default function DashboardClient() {
     <div className="space-y-6">
 
 
+
       {/* ── Loading / Error ── */}
       {loading && (
         <div className="flex items-center justify-center py-20">
@@ -256,7 +414,7 @@ export default function DashboardClient() {
       )}
 
       {!loading && data && (
-  <>
+  <div ref={dashboardRef}>
         {/* ── KPIs siempre sin filtro ── */}
         <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
           <KpiCard
@@ -310,7 +468,7 @@ export default function DashboardClient() {
         </div>
 
         {/* ── Separador con etiqueta ── */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3" style={{ marginTop: "2rem", marginBottom: "2rem" }}>
           <div style={{ flex: 1, height: "1px", background: "var(--borde)" }} />
           <span
             className="text-xs font-semibold uppercase tracking-widest px-3 py-1 rounded-full"
@@ -332,7 +490,7 @@ export default function DashboardClient() {
               Filtros — afectan los gráficos y tablas de abajo
             </p>
           </div>
-          <div className="flex flex-wrap gap-3 items-end">
+          <div className="flex flex-wrap gap-3 items-start">
       <div>
         <label style={{ display:"block", fontSize:"0.68rem", fontWeight:600, textTransform:"uppercase", letterSpacing:"0.05em", color:"var(--gris-grafito)", marginBottom:"4px" }}>
           Año titulación desde
@@ -400,20 +558,46 @@ export default function DashboardClient() {
           → Graduados por año
         </p>
       </div>
-      <button
-        onClick={fetchData}
-        disabled={loading}
-        className="btn-primary btn-sm flex items-center gap-2"
-      >
-        <RefreshCw className={cn("w-3.5 h-3.5", loading && "animate-spin")} />
-        Aplicar filtros
-      </button>
-      {(anioDesde || anioHasta || sector || modalidad || tipo) && (
-        <button onClick={resetFiltros} className="btn-ghost btn-sm text-xs">
-          Limpiar filtros
-        </button>
-      )}
-    </div>
+
+      <div className="pt-[22px] flex items-center gap-3">
+        <button
+            onClick={fetchData}
+            disabled={loading}
+            className="btn-primary btn-sm flex items-center gap-2 h-[38px]"
+          >
+            <RefreshCw className={cn("w-3.5 h-3.5", loading && "animate-spin")} />
+            Aplicar filtros
+          </button>
+         {(anioDesde || anioHasta || sector || modalidad || tipo) && (
+            <button
+              onClick={resetFiltros}
+              className="btn-sm h-[38px] px-4 text-xs font-medium rounded-lg border flex items-center"
+              style={{
+                borderColor: "var(--borde)",
+                color: "var(--gris-grafito)",
+                background: "var(--blanco)",
+              }}
+            >
+              Limpiar filtros
+            </button>
+          )}
+
+          <button
+            onClick={exportarPDF}
+            disabled={!data || loading}
+            className="btn-sm h-[38px] px-4 flex items-center gap-2 rounded-lg border"
+            style={{
+              borderColor: "var(--borde)",
+              color: "var(--azul-pizarra)",
+              background: "var(--blanco)",
+            }}
+            title="Exportar dashboard completo a PDF"
+          >
+            <FileDown className="w-4 h-4" style={{ color: "var(--turquesa)" }} />
+            Exportar PDF
+          </button>
+        </div>
+      </div>
     </div>
 
     {/* ── Gráficos fila 1 ── */}
@@ -550,7 +734,7 @@ export default function DashboardClient() {
       </p>
       <TablaCohorte data={g.cohorteComparativo ?? []} />
     </div>
-  </>
+  </div>
 )}
     </div>
   );
