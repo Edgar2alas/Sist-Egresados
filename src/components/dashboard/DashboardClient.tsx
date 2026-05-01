@@ -238,83 +238,6 @@ export default function DashboardClient() {
   return (
     <div className="space-y-6">
 
-      {/* ── Panel de filtros ── */}
-      <div
-        className="rounded-2xl p-5"
-        style={{ background: "var(--blanco)", border: "1px solid var(--borde)", boxShadow: "var(--shadow-sm)" }}
-      >
-        <div className="flex items-center gap-2 mb-4">
-          <Filter className="w-4 h-4" style={{ color: "var(--turquesa)" }} />
-          <p className="text-sm font-semibold" style={{ color: "var(--azul-pizarra)" }}>Filtros del dashboard</p>
-        </div>
-        <div className="flex flex-wrap gap-3 items-end">
-          <div>
-            <label style={{ display: "block", fontSize: "0.68rem", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--gris-grafito)", marginBottom: "4px" }}>
-              Año titulación desde
-            </label>
-            <select value={anioDesde} onChange={e => setAnioDesde(e.target.value)} style={fieldCss}>
-              <option value="">Todos</option>
-              {years.map(y => <option key={y} value={y}>{y}</option>)}
-            </select>
-          </div>
-          <div>
-            <label style={{ display: "block", fontSize: "0.68rem", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--gris-grafito)", marginBottom: "4px" }}>
-              Hasta
-            </label>
-            <select value={anioHasta} onChange={e => setAnioHasta(e.target.value)} style={fieldCss}>
-              <option value="">Todos</option>
-              {years.map(y => <option key={y} value={y}>{y}</option>)}
-            </select>
-          </div>
-          <div>
-            <label style={{ display: "block", fontSize: "0.68rem", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--gris-grafito)", marginBottom: "4px" }}>
-              Tipo
-            </label>
-            <select value={tipo} onChange={e => setTipo(e.target.value)} style={fieldCss}>
-              <option value="">Todos</option>
-              <option value="Titulado">Titulado</option>
-              <option value="Egresado">Egresado</option>
-            </select>
-          </div>
-          <div>
-            <label style={{ display: "block", fontSize: "0.68rem", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--gris-grafito)", marginBottom: "4px" }}>
-              Sector laboral
-            </label>
-            <select value={sector} onChange={e => setSector(e.target.value)} style={fieldCss}>
-              <option value="">Todos</option>
-              <option value="Publico">Público</option>
-              <option value="Privado">Privado</option>
-              <option value="Independiente">Independiente</option>
-              <option value="ONG">ONG</option>
-            </select>
-          </div>
-          <div>
-            <label style={{ display: "block", fontSize: "0.68rem", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--gris-grafito)", marginBottom: "4px" }}>
-              Modalidad
-            </label>
-            <select value={modalidad} onChange={e => setModalidad(e.target.value)} style={fieldCss}>
-              <option value="">Todas</option>
-              <option value="Tesis">Tesis</option>
-              <option value="Proyecto de grado">Proyecto de grado</option>
-              <option value="Trabajo dirigido">Trabajo dirigido</option>
-              <option value="Excelencia">Excelencia</option>
-            </select>
-          </div>
-          <button
-            onClick={fetchData}
-            disabled={loading}
-            className="btn-primary btn-sm flex items-center gap-2"
-          >
-            <RefreshCw className={cn("w-3.5 h-3.5", loading && "animate-spin")} />
-            Actualizar
-          </button>
-          {(anioDesde || anioHasta || sector || modalidad || tipo) && (
-            <button onClick={resetFiltros} className="btn-ghost btn-sm text-xs">
-              Limpiar filtros
-            </button>
-          )}
-        </div>
-      </div>
 
       {/* ── Loading / Error ── */}
       {loading && (
@@ -333,208 +256,302 @@ export default function DashboardClient() {
       )}
 
       {!loading && data && (
-        <>
-          {/* ── KPIs ── */}
-          <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
-            <KpiCard
-              label="Total Titulados"
-              value={kpis.totalTitulados ?? 0}
-              sub="Incluye fallecidos"
-              icon={GraduationCap}
-              color="text-primary-500"
-              bg="bg-primary-500/10 border-primary-500/20"
-            />
-            <KpiCard
-              label="Total Egresados sin título"
-              value={kpis.totalEgresados ?? 0}
-              sub="Incluye fallecidos"
-              icon={Users}
-              color="text-amber-500"
-              bg="bg-amber-500/10 border-amber-500/20"
-            />
-            <KpiCard
-              label="Tasa de empleabilidad"
-              value={`${kpis.tasaEmpleabilidadTitulados ?? 0}%`}
-              sub={`${kpis.tituladosConEmpleo ?? 0} de ${kpis.tituladosActivos ?? 0} titulados activos`}
-              icon={TrendingUp}
-              color="text-emerald-500"
-              bg="bg-emerald-500/10 border-emerald-500/20"
-            />
-            <KpiCard
-              label="Tiempo promedio egreso → titulación"
-              value={kpis.tiempoPromedioTitulacion ? `${kpis.tiempoPromedioTitulacion} m` : "—"}
-              sub="Promedio en meses"
-              icon={Clock}
-              color="text-blue-500"
-              bg="bg-blue-500/10 border-blue-500/20"
-            />
-            <KpiCard
-              label="Tiempo promedio inserción laboral"
-              value={kpis.tiempoPromedioInsercion ? `${kpis.tiempoPromedioInsercion} m` : "—"}
-              sub="Egreso → primer empleo (meses)"
-              icon={Briefcase}
-              color="text-purple-500"
-              bg="bg-purple-500/10 border-purple-500/20"
-            />
-            <KpiCard
-              label="Titulados con empleo activo"
-              value={kpis.tituladosConEmpleo ?? 0}
-              sub={`De ${kpis.tituladosActivos ?? 0} titulados no fallecidos`}
-              icon={TrendingUp}
-              color="text-cyan-500"
-              bg="bg-cyan-500/10 border-cyan-500/20"
-            />
-          </div>
+  <>
+        {/* ── KPIs siempre sin filtro ── */}
+        <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+          <KpiCard
+            label="Total Titulados registrados"
+            value={kpis.totalTitulados ?? 0}
+            sub="Incluye fallecidos"
+            icon={GraduationCap}
+            color="text-primary-500"
+            bg="bg-primary-500/10 border-primary-500/20"
+          />
+          <KpiCard
+            label="Total Egresados sin título"
+            value={kpis.totalEgresados ?? 0}
+            sub="Incluye fallecidos"
+            icon={Users}
+            color="text-amber-500"
+            bg="bg-amber-500/10 border-amber-500/20"
+          />
+          <KpiCard
+            label="Tasa de empleabilidad titulados"
+            value={`${kpis.tasaEmpleabilidadTitulados ?? 0}%`}
+            sub={`${kpis.tituladosConEmpleo ?? 0} de ${kpis.tituladosActivos ?? 0} titulados activos`}
+            icon={TrendingUp}
+            color="text-emerald-500"
+            bg="bg-emerald-500/10 border-emerald-500/20"
+          />
+          <KpiCard
+            label="Tiempo promedio egreso → titulación"
+            value={kpis.tiempoPromedioTitulacion ? `${kpis.tiempoPromedioTitulacion} m` : "—"}
+            sub="Promedio en meses"
+            icon={Clock}
+            color="text-blue-500"
+            bg="bg-blue-500/10 border-blue-500/20"
+          />
+          <KpiCard
+            label="Tiempo promedio inserción laboral"
+            value={kpis.tiempoPromedioInsercion ? `${kpis.tiempoPromedioInsercion} m` : "—"}
+            sub="Egreso → primer empleo (meses)"
+            icon={Briefcase}
+            color="text-purple-500"
+            bg="bg-purple-500/10 border-purple-500/20"
+          />
+          <KpiCard
+            label="% Titulados con empleo activo"
+            value={`${kpis.tasaEmpleabilidadTitulados ?? 0}%`}
+            sub={`${kpis.tituladosConEmpleo ?? 0} empleados de ${kpis.tituladosActivos ?? 0} titulados`}
+            icon={Briefcase}
+            color="text-cyan-500"
+            bg="bg-cyan-500/10 border-cyan-500/20"
+          />
+        </div>
 
-          {/* ── Gráficos fila 1 ── */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-
-            {/* Titulados/Egresados por año */}
-            <div
-              className="rounded-2xl p-5"
-              style={{ background: "var(--blanco)", border: "1px solid var(--borde)", boxShadow: "var(--shadow-sm)" }}
-            >
-              <h3 className="font-bold mb-1" style={{ color: "var(--azul-pizarra)", fontFamily: "'Source Serif 4', serif" }}>
-                Graduados por año
-              </h3>
-              <p className="text-xs mb-4" style={{ color: "var(--placeholder)" }}>
-                Titulados y egresados por año de titulación
-              </p>
-              {g.tituladosPorAnio?.length > 0 ? (
-                <ResponsiveContainer width="100%" height={220}>
-                  <BarChart data={g.tituladosPorAnio} barSize={18}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="var(--borde)" />
-                    <XAxis dataKey="anio" tick={{ fill: "var(--gris-grafito)", fontSize: 11 }} axisLine={false} />
-                    <YAxis tick={{ fill: "var(--gris-grafito)", fontSize: 11 }} axisLine={false} tickLine={false} allowDecimals={false} />
-                    <Tooltip content={<CustomTooltip />} />
-                    <Legend wrapperStyle={{ fontSize: "11px", color: "var(--gris-grafito)" }} />
-                    <Bar dataKey="titulados" name="Titulados" fill="#00A5A8" radius={[3,3,0,0]} />
-                    <Bar dataKey="egresados" name="Egresados" fill="#f59e0b" radius={[3,3,0,0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              ) : (
-                <div className="flex items-center justify-center h-[220px]">
-                  <p className="text-sm" style={{ color: "var(--placeholder)" }}>Sin datos para los filtros seleccionados</p>
-                </div>
-              )}
-            </div>
-
-            {/* Distribución por sector laboral */}
-            <div
-              className="rounded-2xl p-5"
-              style={{ background: "var(--blanco)", border: "1px solid var(--borde)", boxShadow: "var(--shadow-sm)" }}
-            >
-              <h3 className="font-bold mb-1" style={{ color: "var(--azul-pizarra)", fontFamily: "'Source Serif 4', serif" }}>
-                Sector laboral
-              </h3>
-              <p className="text-xs mb-4" style={{ color: "var(--placeholder)" }}>
-                Distribución de empleos actuales por sector
-              </p>
-              {g.porSector?.length > 0 ? (
-                <ResponsiveContainer width="100%" height={220}>
-                  <PieChart>
-                    <Pie
-                      data={g.porSector}
-                      dataKey="cantidad"
-                      nameKey="sector"
-                      cx="50%" cy="50%"
-                      outerRadius={85}
-                      label={({ sector: s, percent }) => `${s} ${(percent * 100).toFixed(0)}%`}
-                      labelLine={false}
-                    >
-                      {g.porSector.map((_: any, i: number) => (
-                        <Cell key={i} fill={COLORS[i % COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip {...TT} />
-                  </PieChart>
-                </ResponsiveContainer>
-              ) : (
-                <div className="flex items-center justify-center h-[220px]">
-                  <p className="text-sm" style={{ color: "var(--placeholder)" }}>Sin datos de empleo</p>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* ── Gráficos fila 2 ── */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-
-            {/* Modalidad de titulación */}
-            <div
-              className="rounded-2xl p-5"
-              style={{ background: "var(--blanco)", border: "1px solid var(--borde)", boxShadow: "var(--shadow-sm)" }}
-            >
-              <h3 className="font-bold mb-1" style={{ color: "var(--azul-pizarra)", fontFamily: "'Source Serif 4', serif" }}>
-                Modalidad de titulación
-              </h3>
-              <p className="text-xs mb-4" style={{ color: "var(--placeholder)" }}>
-                Cantidad de egresados por cada modalidad
-              </p>
-              {g.porModalidad?.length > 0 ? (
-                <ResponsiveContainer width="100%" height={220}>
-                  <BarChart data={g.porModalidad} layout="vertical" barSize={22}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="var(--borde)" horizontal={false} />
-                    <XAxis type="number" tick={{ fill: "var(--gris-grafito)", fontSize: 11 }} axisLine={false} allowDecimals={false} />
-                    <YAxis
-                      type="category"
-                      dataKey="modalidad"
-                      tick={{ fill: "var(--gris-grafito)", fontSize: 10 }}
-                      axisLine={false}
-                      tickLine={false}
-                      width={110}
-                    />
-                    <Tooltip {...TT} />
-                    <Bar dataKey="cantidad" name="Egresados" radius={[0,4,4,0]}>
-                      {g.porModalidad.map((_: any, i: number) => (
-                        <Cell key={i} fill={COLORS[i % COLORS.length]} />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-              ) : (
-                <div className="flex items-center justify-center h-[220px]">
-                  <p className="text-sm" style={{ color: "var(--placeholder)" }}>Sin datos de modalidad</p>
-                </div>
-              )}
-            </div>
-
-            {/* Distribución geográfica */}
-            <div
-              className="rounded-2xl p-5"
-              style={{ background: "var(--blanco)", border: "1px solid var(--borde)", boxShadow: "var(--shadow-sm)" }}
-            >
-              <h3 className="font-bold mb-1" style={{ color: "var(--azul-pizarra)", fontFamily: "'Source Serif 4', serif" }}>
-                Distribución geográfica
-              </h3>
-              <p className="text-xs mb-4" style={{ color: "var(--placeholder)" }}>
-                Ciudades de trabajo y departamentos de residencia
-              </p>
-              <div className="grid grid-cols-2 gap-6">
-                <TablaGeo data={g.geoCiudad ?? []} titulo="Ciudad de trabajo" />
-                <TablaGeo
-                  data={(g.geoRegion ?? []).map((r: any) => ({ ...r, ciudad: r.region }))}
-                  titulo="Departamento residencia"
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* ── Tabla comparativa cohortes ── */}
-          <div
-            className="rounded-2xl p-5"
-            style={{ background: "var(--blanco)", border: "1px solid var(--borde)", boxShadow: "var(--shadow-sm)" }}
+        {/* ── Separador con etiqueta ── */}
+        <div className="flex items-center gap-3">
+          <div style={{ flex: 1, height: "1px", background: "var(--borde)" }} />
+          <span
+            className="text-xs font-semibold uppercase tracking-widest px-3 py-1 rounded-full"
+            style={{ background: "var(--turquesa-pale)", color: "var(--turquesa-dark)", border: "1px solid rgba(0,165,168,0.20)" }}
           >
-            <h3 className="font-bold mb-1" style={{ color: "var(--azul-pizarra)", fontFamily: "'Source Serif 4', serif" }}>
-              Comparativo por cohorte de ingreso
-            </h3>
-            <p className="text-xs mb-4" style={{ color: "var(--placeholder)" }}>
-              Titulados vs Egresados por año de ingreso — últimas 20 cohortes
+            Gráficos y análisis — aplica filtros
+          </span>
+          <div style={{ flex: 1, height: "1px", background: "var(--borde)" }} />
+        </div>
+
+        {/* ── Panel de filtros (afectan solo los gráficos) ── */}
+        <div
+          className="rounded-2xl p-5"
+          style={{ background: "var(--blanco)", border: "1px solid var(--borde)", boxShadow: "var(--shadow-sm)" }}
+        >
+          <div className="flex items-center gap-2 mb-4">
+            <Filter className="w-4 h-4" style={{ color: "var(--turquesa)" }} />
+            <p className="text-sm font-semibold" style={{ color: "var(--azul-pizarra)" }}>
+              Filtros — afectan los gráficos y tablas de abajo
             </p>
-            <TablaCohorte data={g.cohorteComparativo ?? []} />
           </div>
-        </>
+          <div className="flex flex-wrap gap-3 items-end">
+      <div>
+        <label style={{ display:"block", fontSize:"0.68rem", fontWeight:600, textTransform:"uppercase", letterSpacing:"0.05em", color:"var(--gris-grafito)", marginBottom:"4px" }}>
+          Año titulación desde
+        </label>
+        <select value={anioDesde} onChange={e => setAnioDesde(e.target.value)} style={fieldCss}>
+          <option value="">Todos</option>
+          {years.map(y => <option key={y} value={y}>{y}</option>)}
+        </select>
+        <p style={{ fontSize:"0.6rem", color:"var(--placeholder)", marginTop:"2px" }}>
+          → Graduados, Modalidad, Cohorte
+        </p>
+      </div>
+      <div>
+        <label style={{ display:"block", fontSize:"0.68rem", fontWeight:600, textTransform:"uppercase", letterSpacing:"0.05em", color:"var(--gris-grafito)", marginBottom:"4px" }}>
+          Hasta
+        </label>
+        <select value={anioHasta} onChange={e => setAnioHasta(e.target.value)} style={fieldCss}>
+          <option value="">Todos</option>
+          {years.map(y => <option key={y} value={y}>{y}</option>)}
+        </select>
+        <p style={{ fontSize:"0.6rem", color:"var(--placeholder)", marginTop:"2px" }}>
+          → Graduados, Modalidad, Cohorte
+        </p>
+      </div>
+      <div>
+        <label style={{ display:"block", fontSize:"0.68rem", fontWeight:600, textTransform:"uppercase", letterSpacing:"0.05em", color:"var(--gris-grafito)", marginBottom:"4px" }}>
+          Tipo
+        </label>
+        <select value={tipo} onChange={e => setTipo(e.target.value)} style={fieldCss}>
+          <option value="">Todos</option>
+          <option value="Titulado">Titulado</option>
+          <option value="Egresado">Egresado</option>
+        </select>
+        <p style={{ fontSize:"0.6rem", color:"var(--placeholder)", marginTop:"2px" }}>
+          → Todos los gráficos
+        </p>
+      </div>
+      <div>
+        <label style={{ display:"block", fontSize:"0.68rem", fontWeight:600, textTransform:"uppercase", letterSpacing:"0.05em", color:"var(--gris-grafito)", marginBottom:"4px" }}>
+          Sector laboral
+        </label>
+        <select value={sector} onChange={e => setSector(e.target.value)} style={fieldCss}>
+          <option value="">Todos</option>
+          <option value="Publico">Público</option>
+          <option value="Privado">Privado</option>
+          <option value="Independiente">Independiente</option>
+          <option value="ONG">ONG</option>
+        </select>
+        <p style={{ fontSize:"0.6rem", color:"var(--placeholder)", marginTop:"2px" }}>
+          → Geografía (ciudad trabajo)
+        </p>
+      </div>
+      <div>
+        <label style={{ display:"block", fontSize:"0.68rem", fontWeight:600, textTransform:"uppercase", letterSpacing:"0.05em", color:"var(--gris-grafito)", marginBottom:"4px" }}>
+          Modalidad titulación
+        </label>
+        <select value={modalidad} onChange={e => setModalidad(e.target.value)} style={fieldCss}>
+          <option value="">Todas</option>
+          <option value="Tesis">Tesis</option>
+          <option value="Proyecto de grado">Proyecto de grado</option>
+          <option value="Trabajo dirigido">Trabajo dirigido</option>
+          <option value="Excelencia">Excelencia</option>
+        </select>
+        <p style={{ fontSize:"0.6rem", color:"var(--placeholder)", marginTop:"2px" }}>
+          → Graduados por año
+        </p>
+      </div>
+      <button
+        onClick={fetchData}
+        disabled={loading}
+        className="btn-primary btn-sm flex items-center gap-2"
+      >
+        <RefreshCw className={cn("w-3.5 h-3.5", loading && "animate-spin")} />
+        Aplicar filtros
+      </button>
+      {(anioDesde || anioHasta || sector || modalidad || tipo) && (
+        <button onClick={resetFiltros} className="btn-ghost btn-sm text-xs">
+          Limpiar filtros
+        </button>
       )}
+    </div>
+    </div>
+
+    {/* ── Gráficos fila 1 ── */}
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div
+        className="rounded-2xl p-5"
+        style={{ background: "var(--blanco)", border: "1px solid var(--borde)", boxShadow: "var(--shadow-sm)" }}
+      >
+        <h3 className="font-bold mb-1" style={{ color: "var(--azul-pizarra)", fontFamily: "'Source Serif 4', serif" }}>
+          Graduados por año
+        </h3>
+        <p className="text-xs mb-4" style={{ color: "var(--placeholder)" }}>
+          Titulados y egresados por año de titulación
+        </p>
+        {g.tituladosPorAnio?.length > 0 ? (
+          <ResponsiveContainer width="100%" height={220}>
+            <BarChart data={g.tituladosPorAnio} barSize={18}>
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--borde)" />
+              <XAxis dataKey="anio" tick={{ fill: "var(--gris-grafito)", fontSize: 11 }} axisLine={false} />
+              <YAxis tick={{ fill: "var(--gris-grafito)", fontSize: 11 }} axisLine={false} tickLine={false} allowDecimals={false} />
+              <Tooltip content={<CustomTooltip />} />
+              <Legend wrapperStyle={{ fontSize: "11px", color: "var(--gris-grafito)" }} />
+              <Bar dataKey="titulados" name="Titulados" fill="#00A5A8" radius={[3,3,0,0]} />
+              <Bar dataKey="egresados" name="Egresados" fill="#f59e0b" radius={[3,3,0,0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        ) : (
+          <div className="flex items-center justify-center h-[220px]">
+            <p className="text-sm" style={{ color: "var(--placeholder)" }}>Sin datos para los filtros seleccionados</p>
+          </div>
+        )}
+      </div>
+
+      <div
+        className="rounded-2xl p-5"
+        style={{ background: "var(--blanco)", border: "1px solid var(--borde)", boxShadow: "var(--shadow-sm)" }}
+      >
+        <h3 className="font-bold mb-1" style={{ color: "var(--azul-pizarra)", fontFamily: "'Source Serif 4', serif" }}>
+          Sector laboral
+        </h3>
+        <p className="text-xs mb-4" style={{ color: "var(--placeholder)" }}>
+          Distribución de empleos actuales por sector
+        </p>
+        {g.porSector?.length > 0 ? (
+          <ResponsiveContainer width="100%" height={220}>
+            <PieChart>
+              <Pie
+                data={g.porSector}
+                dataKey="cantidad"
+                nameKey="sector"
+                cx="50%" cy="50%"
+                outerRadius={85}
+                label={({ sector: s, percent }) => `${s} ${(percent * 100).toFixed(0)}%`}
+                labelLine={false}
+              >
+                {g.porSector.map((_: any, i: number) => (
+                  <Cell key={i} fill={COLORS[i % COLORS.length]} />
+                ))}
+              </Pie>
+              <Tooltip {...TT} />
+            </PieChart>
+          </ResponsiveContainer>
+        ) : (
+          <div className="flex items-center justify-center h-[220px]">
+            <p className="text-sm" style={{ color: "var(--placeholder)" }}>Sin datos de empleo</p>
+          </div>
+        )}
+      </div>
+    </div>
+
+    {/* ── Gráficos fila 2 ── */}
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div
+        className="rounded-2xl p-5"
+        style={{ background: "var(--blanco)", border: "1px solid var(--borde)", boxShadow: "var(--shadow-sm)" }}
+      >
+        <h3 className="font-bold mb-1" style={{ color: "var(--azul-pizarra)", fontFamily: "'Source Serif 4', serif" }}>
+          Modalidad de titulación
+        </h3>
+        <p className="text-xs mb-4" style={{ color: "var(--placeholder)" }}>
+          Cantidad de egresados por cada modalidad
+        </p>
+        {g.porModalidad?.length > 0 ? (
+          <ResponsiveContainer width="100%" height={220}>
+            <BarChart data={g.porModalidad} layout="vertical" barSize={22}>
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--borde)" horizontal={false} />
+              <XAxis type="number" tick={{ fill: "var(--gris-grafito)", fontSize: 11 }} axisLine={false} allowDecimals={false} />
+              <YAxis type="category" dataKey="modalidad" tick={{ fill: "var(--gris-grafito)", fontSize: 10 }} axisLine={false} tickLine={false} width={110} />
+              <Tooltip {...TT} />
+              <Bar dataKey="cantidad" name="Egresados" radius={[0,4,4,0]}>
+                {g.porModalidad.map((_: any, i: number) => (
+                  <Cell key={i} fill={COLORS[i % COLORS.length]} />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        ) : (
+          <div className="flex items-center justify-center h-[220px]">
+            <p className="text-sm" style={{ color: "var(--placeholder)" }}>Sin datos de modalidad</p>
+          </div>
+        )}
+      </div>
+
+      <div
+        className="rounded-2xl p-5"
+        style={{ background: "var(--blanco)", border: "1px solid var(--borde)", boxShadow: "var(--shadow-sm)" }}
+      >
+        <h3 className="font-bold mb-1" style={{ color: "var(--azul-pizarra)", fontFamily: "'Source Serif 4', serif" }}>
+          Distribución geográfica
+        </h3>
+        <p className="text-xs mb-4" style={{ color: "var(--placeholder)" }}>
+          Ciudades de trabajo y departamentos de residencia
+        </p>
+        <div className="grid grid-cols-2 gap-6">
+          <TablaGeo data={g.geoCiudad ?? []} titulo="Ciudad de trabajo" />
+          <TablaGeo
+            data={(g.geoRegion ?? []).map((r: any) => ({ ...r, ciudad: r.region }))}
+            titulo="Departamento residencia"
+          />
+        </div>
+      </div>
+    </div>
+
+    {/* ── Tabla cohorte ── */}
+    <div
+      className="rounded-2xl p-5"
+      style={{ background: "var(--blanco)", border: "1px solid var(--borde)", boxShadow: "var(--shadow-sm)" }}
+    >
+      <h3 className="font-bold mb-1" style={{ color: "var(--azul-pizarra)", fontFamily: "'Source Serif 4', serif" }}>
+        Comparativo por cohorte de ingreso
+      </h3>
+      <p className="text-xs mb-4" style={{ color: "var(--placeholder)" }}>
+        Titulados vs Egresados por año de ingreso — últimas 20 cohortes
+      </p>
+      <TablaCohorte data={g.cohorteComparativo ?? []} />
+    </div>
+  </>
+)}
     </div>
   );
 }
