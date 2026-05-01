@@ -42,7 +42,7 @@ function LoginModal({ onClose }: { onClose: () => void }) {
       const res  = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ci: ci.trim(), password }),
+        body: JSON.stringify({ correo: ci.trim(), password }),
       });
       const json = await res.json();
       if (!res.ok) { setError(json.error); return; }

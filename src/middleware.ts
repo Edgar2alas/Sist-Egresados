@@ -23,6 +23,9 @@ export async function middleware(req: NextRequest) {
       pathname.startsWith("/api/auth/login") ||
       pathname.startsWith("/api/auth/solicitar-codigo") ||
       pathname.startsWith("/api/auth/cambiar-password") ||
+      pathname.startsWith("/api/auth/agregar-contacto") ||
+      pathname.startsWith("/api/auth/verificar-contacto") ||
+      pathname.startsWith("/api/auth/activar-cuenta") ||
       pathname.startsWith("/api/egresados/destacados") ||
       pathname.startsWith("/api/egresados/directorio-publico")
     ) return NextResponse.next();
