@@ -1,10 +1,8 @@
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @import url('https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,300;0,8..60,400;0,8..60,600;0,8..60,700;1,8..60,400&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap');
-
 /* ── Paleta Institucional — Carrera de Estadística UMSA ─────────────── */
 :root {
   /* Arquitectura base */
@@ -41,18 +39,37 @@
 }
 
 @layer base {
-  * { box-sizing: border-box; }
+  *, *::before, *::after {
+    box-sizing: border-box;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    color-scheme: light;
+  }
+
   body {
     background: var(--humo);
-    color: var(--azul-pizarra);
+    color: var(--pizarra);
     font-family: 'DM Sans', system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    font-synthesis: none;
+    text-rendering: optimizeLegibility;
   }
-  h1, h2, h3 {
+
+  /* Headings usan la fuente serif institucional */
+  h1, h2, h3, h4, h5, h6 {
     font-family: 'Source Serif 4', Georgia, serif;
     letter-spacing: -0.01em;
   }
+
+  ::selection {
+    background: rgba(0, 68, 126, 0.18);
+    color: #00233f;
+  }
+
+  /* Scrollbar personalizado */
   ::-webkit-scrollbar       { width: 5px; height: 5px; }
   ::-webkit-scrollbar-track { background: var(--humo); }
   ::-webkit-scrollbar-thumb { background: var(--borde); border-radius: 99px; }
@@ -99,12 +116,12 @@
 
   /* ── Formulario ──────────────────────────────────────────────────────── */
   .field {
-    @apply w-full rounded-xl px-4 py-2.5 text-sm transition-all;
+    @apply w-full rounded-xl px-4 py-2.5 text-sm transition-all outline-none;
     background: var(--humo);
     border: 1.5px solid var(--borde);
-    color: var(--azul-pizarra);
-    outline: none;
+    color: var(--pizarra);
   }
+
   .field::placeholder { color: var(--placeholder); }
   .field:focus {
     background: var(--blanco);
@@ -117,8 +134,9 @@
 
   .label {
     @apply block text-xs font-semibold uppercase tracking-wide mb-1.5;
-    color: var(--gris-grafito);
+    color: var(--grafito);
   }
+  
   .hint  { @apply mt-1 text-xs; color: #dc2626; }
   .error-box {
     background: #FEF2F2;
@@ -279,64 +297,27 @@
 
   /* ── Divider ─────────────────────────────────────────────────────────── */
   .divider { border: none; border-top: 1px solid var(--borde); @apply my-6; }
-  /* ── Correcciones de contraste ───────────────────────────────────────── */
-  /* Textos sobre fondos oscuros del admin (bg-slate-800/bg-slate-900) */
-  .text-slate-600 { color: #64748b; }
-
-  /* En contextos oscuros, forzar legibilidad */
-  [style*="background: var(--marino)"] .text-slate-500,
-  [style*="background: #1e293b"] .text-slate-500 {
-    color: #94a3b8 !important;
-  }
-
-  /* Celdas de tabla con mejor contraste */
-  .tbl tbody td {
-    color: var(--azul-pizarra);
-  }
-
-  /* Campo de formulario sobre fondo oscuro (login/activar cuenta) */
-  .bg-slate-950 .field,
-  [style*="background: #0f172a"] .field,
-  [style*="bg-slate-950"] .field {
-    background: rgba(255, 255, 255, 0.06);
-    border-color: rgba(255, 255, 255, 0.12);
-    color: white;
-  }
-  .bg-slate-950 .field::placeholder {
-    color: rgba(255, 255, 255, 0.35);
-  }
-  .bg-slate-950 .field:focus {
-    background: rgba(255, 255, 255, 0.09);
-    border-color: var(--turquesa);
-    box-shadow: 0 0 0 3px rgba(0, 165, 168, 0.20);
-  }
-
-  /* Labels sobre fondo oscuro */
-  .bg-slate-950 .label {
-    color: rgba(255, 255, 255, 0.70);
-  }
 }
 
 @layer utilities {
-  .animate-fade-up  { animation: fadeUp  .35s cubic-bezier(.16,1,.3,1) both; }
-  .animate-fade-in  { animation: fadeIn  .25s ease-out both; }
-  .animate-slide-in { animation: slideIn .3s cubic-bezier(.16,1,.3,1) both; }
+  .text-turquesa   { color: var(--turquesa); }
+  .text-marino     { color: var(--institucional); }
+  .text-enfasis    { color: var(--enfasis); }
+  .bg-turquesa     { background: var(--turquesa); }
+  .bg-marino       { background: var(--institucional); }
+  .bg-enfasis      { background: var(--enfasis); }
+  .border-turquesa { border-color: var(--turquesa); }
 
-  @keyframes fadeUp  { from { opacity:0; transform:translateY(14px); } to { opacity:1; transform:translateY(0); } }
-  @keyframes fadeIn  { from { opacity:0; } to { opacity:1; } }
-  @keyframes slideIn { from { opacity:0; transform:translateX(-12px); } to { opacity:1; transform:translateX(0); } }
-
-  /* Stagger helpers */
+  /* Stagger helpers para animaciones */
   .delay-1 { animation-delay: .05s; }
   .delay-2 { animation-delay: .10s; }
   .delay-3 { animation-delay: .15s; }
   .delay-4 { animation-delay: .20s; }
   .delay-5 { animation-delay: .25s; }
 
-  /* Turquesa utilities */
-  .text-turquesa      { color: var(--turquesa); }
-  .text-marino        { color: var(--marino); }
-  .bg-turquesa        { background: var(--turquesa); }
-  .bg-marino          { background: var(--marino); }
-  .border-turquesa    { border-color: var(--turquesa); }
+  /* Imagen estilo archivo oficial */
+  .img-archivo {
+    @apply object-cover;
+    filter: grayscale(0.7) contrast(1.2);
+  }
 }

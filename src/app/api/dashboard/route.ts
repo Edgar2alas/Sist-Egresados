@@ -126,12 +126,17 @@ export async function GET(req: NextRequest) {
     // Filtros que aplican: tipo
     const geoRegion = await db.execute(sql`
       SELECT
-        COALESCE(region_residencia, 'Sin especificar') AS region,
-        COUNT(*)::int AS cantidad
-      FROM egresado
-      WHERE fallecido = false
-        ${tipo ? sql`AND tipo::text = ${tipo}` : sql``}
-      GROUP BY region_residencia
+        COALESCE(e.region_residencia, 'Sin especificar') AS region,
+        COUNT(DISTINCT e.id)::int AS cantidad
+      FROM egresado e
+      ${sector ? sql`
+        INNER JOIN historial_laboral h
+          ON h.id_egresado = e.id AND h.fecha_fin IS NULL
+          AND h.sector::text = ${sector}
+      ` : sql``}
+      WHERE e.fallecido = false
+        ${tipo   ? sql`AND e.tipo::text = ${tipo}` : sql``}
+      GROUP BY e.region_residencia
       ORDER BY cantidad DESC
       LIMIT 10
     `);
