@@ -23,6 +23,22 @@ function calcularTiempoPrimerEmpleo(
   return { texto: diff === 0 ? "Menos de 1 año" : diff === 1 ? "1 año" : `${diff} años` };
 }
 
+function calcularCompletitud(eg: any): { porcentaje: number; faltantes: string[] } {
+  const campos = [
+    { key: "correoElectronico", label: "Correo" },
+    { key: "celular",           label: "Celular" },
+    { key: "ciudadResidencia",  label: "Ciudad de residencia" },
+    { key: "planEstudiosNombre",label: "Plan de estudios" },
+    { key: "anioEgreso",        label: "Año de egreso" },
+    { key: "direccion",         label: "Dirección" },
+    { key: "genero",            label: "Género" },
+    { key: "areaEspecializacion",label: "Área de especialización" },
+  ];
+  const faltantes = campos.filter(c => !eg[c.key]).map(c => c.label);
+  const porcentaje = Math.round(((campos.length - faltantes.length) / campos.length) * 100);
+  return { porcentaje, faltantes };
+}
+
 export default async function MiPerfilPage() {
  const session = await getSession();
  if (!session || session.rol !== "egresado") redirect("/login");
@@ -38,7 +54,7 @@ export default async function MiPerfilPage() {
 
   const [eg] = await db.select().from(egresado)
     .where(eq(egresado.id, session.idEgresado)).limit(1);
-  
+  const { porcentaje: completitud, faltantes: camposFaltantes } = calcularCompletitud(eg);
   // Si el egresado no existe en BD, ir a registro-inicial
   if (!eg) redirect("/registro-inicial");
   const [historial, postgrados] = await Promise.all([
@@ -62,7 +78,7 @@ export default async function MiPerfilPage() {
     <div className="max-w-4xl mx-auto px-4 py-8 space-y-6 animate-fade-up">
 
       {/* ── Encabezado de perfil ── */}
-      <div className="flex items-start justify-between">
+       <div className="flex flex-col sm:flex-row items-start justify-between gap-3">
         <div className="flex items-center gap-4">
           <div
             className="w-14 h-14 rounded-2xl flex items-center justify-center text-xl font-bold shrink-0"
@@ -80,11 +96,44 @@ export default async function MiPerfilPage() {
             )}
           </div>
         </div>
-        <Link href="/editar-perfil" className="btn-slate btn-sm">
+         <Link href="/editar-perfil" className="btn-slate btn-sm shrink-0">
           <Pencil className="w-3.5 h-3.5" /> Editar perfil
         </Link>
       </div>
       <DirectorioToggle inicial={eg.mostrarEnDirectorio ?? false} />
+       {/* ── Indicador de completitud ── */}
+      {completitud < 100 && (
+        <div className="card" style={{ background: "var(--blanco)" }}>
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-sm font-semibold" style={{ color: "var(--azul-pizarra)" }}>
+              Completitud del perfil
+            </p>
+            <span
+              className="text-sm font-bold"
+              style={{ color: completitud >= 75 ? "var(--verde)" : completitud >= 50 ? "var(--turquesa)" : "var(--naranja)" }}
+            >
+              {completitud}%
+            </span>
+          </div>
+          <div className="w-full rounded-full overflow-hidden" style={{ height: "8px", background: "var(--borde)" }}>
+            <div
+              className="h-full rounded-full transition-all duration-500"
+              style={{
+                width: `${completitud}%`,
+                background: completitud >= 75 ? "var(--verde)" : completitud >= 50 ? "var(--turquesa)" : "var(--naranja)",
+              }}
+            />
+          </div>
+          {camposFaltantes.length > 0 && (
+            <p className="text-xs mt-2" style={{ color: "var(--gris-grafito)" }}>
+              Faltan: {camposFaltantes.join(", ")}.{" "}
+              <Link href="/editar-perfil" style={{ color: "var(--turquesa-dark)", fontWeight: 600 }}>
+                Completar ahora →
+              </Link>
+            </p>
+          )}
+        </div>
+      )}
 
       <ContactoVerificacionModal
         correo={eg.correoElectronico}

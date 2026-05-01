@@ -9,9 +9,10 @@ import { Save, X, GraduationCap, UserX, Globe, Linkedin } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface Props {
-  egresado?:   any;
-  redirectTo?: string;
-  esAdmin?:    boolean;
+  egresado?:    any;
+  redirectTo?:  string;
+  esAdmin?:     boolean;
+  camposVacios?: string[];
 }
 
 // ── Sección de formulario con encabezado ──────────────────────────────────────
@@ -29,7 +30,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   );
 }
 
-export default function EgresadoForm({ egresado: eg, redirectTo, esAdmin = false }: Props) {
+export default function EgresadoForm({ egresado: eg, redirectTo, esAdmin = false, camposVacios = [] }: Props) {
   const router    = useRouter();
   const isEditing = !!eg;
   const [serverError, setServerError] = useState<string | null>(null);
@@ -109,7 +110,26 @@ export default function EgresadoForm({ egresado: eg, redirectTo, esAdmin = false
   };
 
   const f = (hasErr?: boolean) => cn("field", hasErr && "field-err");
+  const FieldLabel = ({ children, campo, required }: {
+    children: React.ReactNode;
+    campo?: string;
+    required?: boolean;
+  }) => (
+    <label className="label flex items-center gap-2">
+      <span>{children}{required && <span className="text-red-400 ml-1">*</span>}</span>
+      {campo && camposVacios.includes(campo) && (
+        <span
+          className="text-xs px-1.5 py-0.5 rounded font-semibold ml-auto"
+          style={{ background: "var(--naranja-light)", color: "var(--naranja)", border: "1px solid #fed7aa" }}
+        >
+          Completar
+        </span>
+      )}
+    </label>
+  );
 
+  const fieldStyle = (campo?: string, hasErr?: boolean) =>
+    cn("field", hasErr && "field-err", campo && camposVacios.includes(campo) && "border-orange-300");
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-7">
       {serverError && <p className="error-box">{serverError}</p>}
@@ -215,14 +235,14 @@ export default function EgresadoForm({ egresado: eg, redirectTo, esAdmin = false
         </div>
 
         <div>
-          <label className="label">Celular</label>
-          <input {...register("celular")} type="tel" placeholder="7XXXXXXX" className="field" />
+           <FieldLabel campo="celular">Celular</FieldLabel>
+              <input {...register("celular")} type="tel" placeholder="7XXXXXXX" className={fieldStyle("celular")} />
         </div>
 
         <div>
-          <label className="label">Correo Electrónico</label>
-          <input {...register("correoElectronico")} type="email" className={f(!!errors.correoElectronico)} />
-          {errors.correoElectronico && <p className="hint">{errors.correoElectronico.message}</p>}
+          <FieldLabel campo="correo">Correo Electrónico</FieldLabel>
+              <input {...register("correoElectronico")} type="email" className={fieldStyle("correo", !!errors.correoElectronico)} />
+              {errors.correoElectronico && <p className="hint">{errors.correoElectronico.message}</p>}
         </div>
 
         <div className="md:col-span-2">
@@ -333,7 +353,7 @@ export default function EgresadoForm({ egresado: eg, redirectTo, esAdmin = false
         </div>
 
         <div>
-          <label className="label">Ciudad de Residencia</label>
+           <FieldLabel campo="ciudad">Ciudad de Residencia</FieldLabel>
           <input
             {...register("ciudadResidencia")}
             className="field"
@@ -360,7 +380,7 @@ export default function EgresadoForm({ egresado: eg, redirectTo, esAdmin = false
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 
           <div>
-            <label className="label">Plan de Estudios</label>
+             <FieldLabel campo="plan">Plan de Estudios</FieldLabel>
             <select {...register("planEstudiosNombre")} className="field">
               <option value="">— Sin especificar —</option>
               {PLANES_ESTUDIO.map(p => (
@@ -382,7 +402,7 @@ export default function EgresadoForm({ egresado: eg, redirectTo, esAdmin = false
           </div>
 
           <div>
-            <label className="label">Año de Egreso</label>
+            <FieldLabel campo="anioEgreso">Año de Egreso</FieldLabel>
             <select
               {...register("anioEgreso", { setValueAs: v => v === "" ? null : Number(v) })}
               className={f(!!errors.anioEgreso)}

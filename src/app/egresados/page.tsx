@@ -147,121 +147,166 @@ export default async function EgresadosPage({ searchParams }: { searchParams: SP
           ciudades={ciudades}
         />
 
-        {rows.length === 0 ? (
+                {rows.length === 0 ? (
           <div className="card text-center py-16" style={{ background: "var(--blanco)" }}>
             <Search className="w-10 h-10 mx-auto mb-3" style={{ color: "var(--borde)" }} />
             <p className="font-semibold" style={{ color: "var(--gris-grafito)" }}>Sin resultados</p>
             <p className="text-sm mt-1" style={{ color: "var(--placeholder)" }}>Prueba con otros filtros</p>
           </div>
         ) : (
-          <div className="tbl-wrap">
-            <table className="tbl">
-              <thead>
-                <tr>
-                  <th>Apellidos, Nombres</th>
-                  <th>CI</th>
-                  <th>Plan · Modalidad</th>
-                  <th>Titulación</th>
-                  <th>Tipo</th>
-                  <th>Empleo</th>
-                  <th>Postgrado</th>
-                  <th className="text-right">Acciones</th>
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map(r => (
-                  <tr key={r.id}>
-                    <td>
-                      <p className="font-semibold text-sm" style={{ color: "var(--azul-pizarra)" }}>
+          <>
+            {/* Vista tabla — desktop */}
+            <div className="hidden md:block tbl-wrap">
+              <table className="tbl">
+                <thead>
+                  <tr>
+                    <th>Apellidos, Nombres</th>
+                    <th>CI</th>
+                    <th>Plan · Modalidad</th>
+                    <th>Titulación</th>
+                    <th>Tipo</th>
+                    <th>Empleo</th>
+                    <th>Postgrado</th>
+                    <th className="text-right">Acciones</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {rows.map(r => (
+                    <tr key={r.id}>
+                      <td>
+                        <p className="font-semibold text-sm" style={{ color: "var(--azul-pizarra)" }}>
+                          {r.apellidoPaterno ?? r.apellidos}
+                          {r.apellidoMaterno ? ` ${r.apellidoMaterno}` : ""}, {r.nombres}
+                        </p>
+                        {r.genero && (
+                          <p className="text-xs mt-0.5" style={{ color: "var(--placeholder)" }}>{r.genero}</p>
+                        )}
+                      </td>
+                      <td>
+                        <span className="font-mono text-sm" style={{ color: "var(--gris-grafito)" }}>
+                          {r.ci}
+                        </span>
+                      </td>
+                      <td>
+                        <p className="text-sm" style={{ color: "var(--gris-grafito)" }}>
+                          {r.planEstudiosNombre ? `Plan ${r.planEstudiosNombre}` : "—"}
+                        </p>
+                        {r.modalidadTitulacion && (
+                          <p className="text-xs mt-0.5" style={{ color: "var(--placeholder)" }}>
+                            {r.modalidadTitulacion}
+                          </p>
+                        )}
+                      </td>
+                      <td className="text-sm" style={{ color: "var(--gris-grafito)" }}>
+                        {r.anioTitulacion ?? (r.anioEgreso ? `Egreso ${r.anioEgreso}` : "—")}
+                      </td>
+                      <td>
+                        <span className="badge" style={r.tipo === "Titulado" ? {
+                          background: "var(--turquesa-light)", color: "var(--turquesa-dark)",
+                          border: "1px solid #99e6e7",
+                        } : {
+                          background: "var(--naranja-light)", color: "var(--naranja)",
+                          border: "1px solid #fed7aa",
+                        }}>
+                          {r.tipo}
+                        </span>
+                      </td>
+                      <td>
+                        <span className="badge" style={r.tieneEmpleo ? {
+                          background: "var(--verde-light)", color: "var(--verde)",
+                          border: "1px solid #86efac",
+                        } : {
+                          background: "var(--humo)", color: "var(--placeholder)",
+                          border: "1px solid var(--borde)",
+                        }}>
+                          {r.tieneEmpleo ? "Empleado" : "Sin empleo"}
+                        </span>
+                      </td>
+                      <td>
+                        {r.tienePostgrado ? (
+                          <span className="badge" style={{
+                            background: "rgba(59,130,246,0.08)", color: "#3b82f6",
+                            border: "1px solid rgba(59,130,246,0.20)",
+                          }}>Con postgrado</span>
+                        ) : (
+                          <span style={{ color: "var(--placeholder)", fontSize: "0.875rem" }}>—</span>
+                        )}
+                      </td>
+                      <td>
+                        <div className="flex items-center justify-end gap-1.5">
+                          <Link href={`/egresados/${r.id}`} className="btn-ghost btn-xs">
+                            <Eye className="w-3.5 h-3.5" /> Ver
+                          </Link>
+                          <Link href={`/egresados/${r.id}/editar`} className="btn-slate btn-xs">
+                            <Pencil className="w-3 h-3" /> Editar
+                          </Link>
+                          <EliminarEgresadoBtn id={r.id} nombre={`${r.nombres} ${r.apellidos}`} />
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Vista cards — móvil */}
+            <div className="md:hidden space-y-3">
+              {rows.map(r => (
+                <div key={r.id} className="card" style={{ background: "var(--blanco)" }}>
+                  <div className="flex items-start justify-between gap-3 mb-3">
+                    <div>
+                      <p className="font-bold text-sm" style={{ color: "var(--azul-pizarra)" }}>
                         {r.apellidoPaterno ?? r.apellidos}
                         {r.apellidoMaterno ? ` ${r.apellidoMaterno}` : ""}, {r.nombres}
                       </p>
-                      {r.genero && (
-                        <p className="text-xs mt-0.5" style={{ color: "var(--placeholder)" }}>{r.genero}</p>
-                      )}
-                    </td>
-                    <td>
-                      <span className="font-mono text-sm" style={{ color: "var(--gris-grafito)" }}>
-                        {r.ci}
-                      </span>
-                    </td>
-                    <td>
-                      <p className="text-sm" style={{ color: "var(--gris-grafito)" }}>
-                        {r.planEstudiosNombre ? `Plan ${r.planEstudiosNombre}` : "—"}
+                      <p className="font-mono text-xs mt-0.5" style={{ color: "var(--gris-grafito)" }}>
+                        CI: {r.ci}
                       </p>
-                      {r.modalidadTitulacion && (
-                        <p className="text-xs mt-0.5" style={{ color: "var(--placeholder)" }}>
-                          {r.modalidadTitulacion}
-                        </p>
-                      )}
-                    </td>
-                    <td className="text-sm" style={{ color: "var(--gris-grafito)" }}>
-                      {r.anioTitulacion ?? (r.anioEgreso ? `Egreso ${r.anioEgreso}` : "—")}
-                    </td>
-                    <td>
-                    <span
-                      className="badge"
-                      style={r.tipo === "Titulado" ? {
-                        background: "var(--turquesa-light)",
-                        color: "var(--turquesa-dark)",
-                        border: "1px solid #99e6e7",
-                      } : {
-                        background: "var(--naranja-light)",
-                        color: "var(--naranja)",
-                        border: "1px solid #fed7aa",
-                      }}
-                    >
+                    </div>
+                    <span className="badge shrink-0" style={r.tipo === "Titulado" ? {
+                      background: "var(--turquesa-light)", color: "var(--turquesa-dark)",
+                      border: "1px solid #99e6e7",
+                    } : {
+                      background: "var(--naranja-light)", color: "var(--naranja)",
+                      border: "1px solid #fed7aa",
+                    }}>
                       {r.tipo}
                     </span>
-                  </td>
-                    <td>
-                      <span
-                        className="badge"
-                        style={r.tieneEmpleo ? {
-                          background: "var(--verde-light)",
-                          color: "var(--verde)",
-                          border: "1px solid #86efac",
-                        } : {
-                          background: "var(--humo)",
-                          color: "var(--placeholder)",
-                          border: "1px solid var(--borde)",
-                        }}
-                      >
-                        {r.tieneEmpleo ? "Empleado" : "Sin empleo"}
+                  </div>
+                  <div className="flex flex-wrap gap-1.5 mb-3">
+                    {r.planEstudiosNombre && (
+                      <span className="text-xs px-2 py-0.5 rounded-full"
+                        style={{ background: "var(--humo)", color: "var(--gris-grafito)", border: "1px solid var(--borde)" }}>
+                        Plan {r.planEstudiosNombre}
                       </span>
-                    </td>
-                    <td>
-                      {r.tienePostgrado ? (
-                        <span
-                          className="badge"
-                          style={{
-                            background: "rgba(59,130,246,0.08)",
-                            color: "#3b82f6",
-                            border: "1px solid rgba(59,130,246,0.20)",
-                          }}
-                        >
-                          Con postgrado
-                        </span>
-                      ) : (
-                        <span style={{ color: "var(--placeholder)", fontSize: "0.875rem" }}>—</span>
-                      )}
-                    </td>
-                    <td>
-                      <div className="flex items-center justify-end gap-1.5">
-                        <Link href={`/egresados/${r.id}`} className="btn-ghost btn-xs">
-                          <Eye className="w-3.5 h-3.5" /> Ver
-                        </Link>
-                        <Link href={`/egresados/${r.id}/editar`} className="btn-slate btn-xs">
-                          <Pencil className="w-3 h-3" /> Editar
-                        </Link>
-                        <EliminarEgresadoBtn id={r.id} nombre={`${r.nombres} ${r.apellidos}`} />
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                    )}
+                    {r.anioTitulacion && (
+                      <span className="text-xs px-2 py-0.5 rounded-full"
+                        style={{ background: "var(--humo)", color: "var(--gris-grafito)", border: "1px solid var(--borde)" }}>
+                        {r.anioTitulacion}
+                      </span>
+                    )}
+                    <span className="badge" style={r.tieneEmpleo ? {
+                      background: "var(--verde-light)", color: "var(--verde)", border: "1px solid #86efac",
+                    } : {
+                      background: "var(--humo)", color: "var(--placeholder)", border: "1px solid var(--borde)",
+                    }}>
+                      {r.tieneEmpleo ? "Empleado" : "Sin empleo"}
+                    </span>
+                  </div>
+                  <div className="flex gap-2">
+                    <Link href={`/egresados/${r.id}`} className="btn-ghost btn-xs flex-1 justify-center">
+                      <Eye className="w-3.5 h-3.5" /> Ver
+                    </Link>
+                    <Link href={`/egresados/${r.id}/editar`} className="btn-slate btn-xs flex-1 justify-center">
+                      <Pencil className="w-3 h-3" /> Editar
+                    </Link>
+                    <EliminarEgresadoBtn id={r.id} nombre={`${r.nombres} ${r.apellidos}`} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
         )}
 
         {/* Paginación */}

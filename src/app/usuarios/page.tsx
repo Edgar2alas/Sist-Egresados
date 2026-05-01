@@ -39,11 +39,12 @@ export default async function UsuariosPage() {
           </Link>
         </div>
 
-        <div className="tbl-wrap">
+        {/* Tabla desktop */}
+        <div className="hidden md:block tbl-wrap">
           <table className="tbl">
             <thead>
               <tr>
-                <th>Correo</th>
+                <th>Correo / CI</th>
                 <th>Rol</th>
                 <th>Estado</th>
                 <th>Egresado vinculado</th>
@@ -54,13 +55,13 @@ export default async function UsuariosPage() {
             <tbody>
               {rows.map(r => (
                 <tr key={r.id}>
-                  <td className="text-white font-medium">{r.correo}</td>
-                  <td><span className={cn(ROL_B[r.rol] ?? "badge-slate")}>{r.rol}</span></td>
-                  <td><span className={cn(ESTADO_B[r.estado] ?? "badge-slate")}>{r.estado}</span></td>
-                  <td className="text-slate-400 text-sm">
-                    {r.nombres ? `${r.apellidos}, ${r.nombres}` : <span className="text-slate-600">—</span>}
+                  <td className="font-medium" style={{ color: "var(--azul-pizarra)" }}>{r.correo}</td>
+                  <td><span className={cn("badge", ROL_B[r.rol] ?? "badge-slate")}>{r.rol}</span></td>
+                  <td><span className={cn("badge", ESTADO_B[r.estado] ?? "badge-slate")}>{r.estado}</span></td>
+                  <td className="text-sm" style={{ color: "var(--gris-grafito)" }}>
+                    {r.nombres ? `${r.apellidos}, ${r.nombres}` : <span style={{ color: "var(--placeholder)" }}>—</span>}
                   </td>
-                  <td className="text-slate-500 text-sm">{fmtDate(r.creadoEn?.toISOString())}</td>
+                  <td className="text-sm" style={{ color: "var(--gris-grafito)" }}>{fmtDate(r.creadoEn?.toISOString())}</td>
                   <td>
                     <div className="flex justify-end gap-1.5">
                       <Link href={`/usuarios/${r.id}/editar`} className="btn-slate btn-xs">
@@ -73,6 +74,35 @@ export default async function UsuariosPage() {
               ))}
             </tbody>
           </table>
+        </div>
+
+        {/* Cards móvil */}
+        <div className="md:hidden space-y-3">
+          {rows.map(r => (
+            <div key={r.id} className="card" style={{ background: "var(--blanco)" }}>
+              <div className="flex items-start justify-between gap-2 mb-2">
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold truncate" style={{ color: "var(--azul-pizarra)" }}>{r.correo}</p>
+                  <p className="text-xs mt-0.5" style={{ color: "var(--placeholder)" }}>{fmtDate(r.creadoEn?.toISOString())}</p>
+                </div>
+                <div className="flex gap-1.5 shrink-0">
+                  <span className={cn("badge", ROL_B[r.rol] ?? "badge-slate")}>{r.rol}</span>
+                  <span className={cn("badge", ESTADO_B[r.estado] ?? "badge-slate")}>{r.estado}</span>
+                </div>
+              </div>
+              {r.nombres && (
+                <p className="text-xs mb-2" style={{ color: "var(--gris-grafito)" }}>
+                  Egresado: {r.apellidos}, {r.nombres}
+                </p>
+              )}
+              <div className="flex gap-2">
+                <Link href={`/usuarios/${r.id}/editar`} className="btn-slate btn-xs flex-1 justify-center">
+                  <Pencil className="w-3 h-3" /> Editar
+                </Link>
+                <EliminarUsuarioBtn id={r.id} correo={r.correo} />
+              </div>
+            </div>
+          ))}
         </div>
       </div>
     </AdminLayout>

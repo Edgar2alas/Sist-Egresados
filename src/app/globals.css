@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -278,6 +279,42 @@
 
   /* ── Divider ─────────────────────────────────────────────────────────── */
   .divider { border: none; border-top: 1px solid var(--borde); @apply my-6; }
+  /* ── Correcciones de contraste ───────────────────────────────────────── */
+  /* Textos sobre fondos oscuros del admin (bg-slate-800/bg-slate-900) */
+  .text-slate-600 { color: #64748b; }
+
+  /* En contextos oscuros, forzar legibilidad */
+  [style*="background: var(--marino)"] .text-slate-500,
+  [style*="background: #1e293b"] .text-slate-500 {
+    color: #94a3b8 !important;
+  }
+
+  /* Celdas de tabla con mejor contraste */
+  .tbl tbody td {
+    color: var(--azul-pizarra);
+  }
+
+  /* Campo de formulario sobre fondo oscuro (login/activar cuenta) */
+  .bg-slate-950 .field,
+  [style*="background: #0f172a"] .field,
+  [style*="bg-slate-950"] .field {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.12);
+    color: white;
+  }
+  .bg-slate-950 .field::placeholder {
+    color: rgba(255, 255, 255, 0.35);
+  }
+  .bg-slate-950 .field:focus {
+    background: rgba(255, 255, 255, 0.09);
+    border-color: var(--turquesa);
+    box-shadow: 0 0 0 3px rgba(0, 165, 168, 0.20);
+  }
+
+  /* Labels sobre fondo oscuro */
+  .bg-slate-950 .label {
+    color: rgba(255, 255, 255, 0.70);
+  }
 }
 
 @layer utilities {
