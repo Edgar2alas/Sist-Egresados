@@ -1,63 +1,76 @@
 "use client";
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { KeyRound, RefreshCw, Eye, EyeOff, ArrowLeft } from "lucide-react";
+import { KeyRound, Eye, EyeOff, ArrowLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-type Paso = "correo" | "codigo" | "password" | "exito";
+type Paso = "ci" | "elegir_canal" | "codigo" | "password" | "exito";
 
 export default function RecuperarPasswordPage() {
-  const router = useRouter();
-
-  const [paso,   setPaso]   = useState<Paso>("correo");
-  const [correo, setCorreo] = useState("");
-  const [codigo, setCodigo] = useState("");
-  const [pass1,  setPass1]  = useState("");
-  const [pass2,  setPass2]  = useState("");
-  const [show1,  setShow1]  = useState(false);
-  const [show2,  setShow2]  = useState(false);
-  const [error,  setError]  = useState<string | null>(null);
+  const [paso,    setPaso]    = useState<Paso>("ci");
+  const [ci,      setCi]      = useState("");
+  const [canal,   setCanal]   = useState<"correo" | "celular">("correo");
+  const [tieneAmbos, setTieneAmbos] = useState(false);
+  const [correoMask,  setCorreoMask]  = useState("");
+  const [celularMask, setCelularMask] = useState("");
+  const [codigo,  setCodigo]  = useState("");
+  const [pass1,   setPass1]   = useState("");
+  const [pass2,   setPass2]   = useState("");
+  const [show1,   setShow1]   = useState(false);
+  const [show2,   setShow2]   = useState(false);
+  const [error,   setError]   = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  // ── Paso 1: solicitar código ──────────────────────────────────────────────
   const solicitarCodigo = async () => {
-    if (!correo) { setError("Ingresa tu correo."); return; }
+    if (!ci.trim()) { setError("Ingresa tu CI."); return; }
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch("/api/auth/solicitar-codigo", {
+      const res  = await fetch("/api/auth/solicitar-codigo", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ correo, tipo: "reset_password" }),
+        body: JSON.stringify({ tipo: "reset_password", ci: ci.trim() }),
+      });
+      const json = await res.json();
+      if (!res.ok) { setError(json.error); return; }
+
+      if (json.data?.tieneAmbos) {
+        setTieneAmbos(true);
+        setCorreoMask(json.data.correoMask ?? "");
+        setCelularMask(json.data.celularMask ?? "");
+        setPaso("elegir_canal");
+        return;
+      }
+      setPaso("codigo");
+    } finally { setLoading(false); }
+  };
+
+  const enviarPorCanal = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/auth/enviar-reset-canal", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ci: ci.trim(), canal }),
       });
       const json = await res.json();
       if (!res.ok) { setError(json.error); return; }
       setPaso("codigo");
-    } catch { setError("Error al enviar el código."); }
-    finally { setLoading(false); }
+    } finally { setLoading(false); }
   };
 
-  // ── Paso 2: verificar código (avanzar a paso 3) ───────────────────────────
-  const verificarCodigo = () => {
-    if (codigo.length !== 6) { setError("El código debe tener 6 dígitos."); return; }
-    setError(null);
-    setPaso("password");
-  };
-
-  // ── Paso 3: cambiar contraseña ────────────────────────────────────────────
   const cambiarPassword = async () => {
     setError(null);
-    if (pass1.length < 8) { setError("La contraseña debe tener al menos 8 caracteres."); return; }
+    if (pass1.length < 8) { setError("Mínimo 8 caracteres."); return; }
     if (pass1 !== pass2)  { setError("Las contraseñas no coinciden."); return; }
-
     setLoading(true);
     try {
       const res  = await fetch("/api/auth/cambiar-password", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          correo,
+          ci:                ci.trim(),
           codigo,
           nuevaPassword:     pass1,
           confirmarPassword: pass2,
@@ -67,15 +80,12 @@ export default function RecuperarPasswordPage() {
       const json = await res.json();
       if (!res.ok) { setError(json.error); return; }
       setPaso("exito");
-    } catch { setError("Error al cambiar la contraseña."); }
-    finally { setLoading(false); }
+    } finally { setLoading(false); }
   };
 
   return (
     <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4">
       <div className="w-full max-w-md animate-fade-up">
-
-        {/* Encabezado */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl
                           bg-amber-500/20 border border-amber-500/30 mb-4">
@@ -83,34 +93,34 @@ export default function RecuperarPasswordPage() {
           </div>
           <h1 className="text-2xl font-bold text-white mb-1">Recuperar contraseña</h1>
           <p className="text-slate-500 text-sm">
-            {paso === "correo"   && "Ingresa tu correo para recibir un código de recuperación"}
-            {paso === "codigo"   && "Ingresa el código que enviamos a tu correo"}
-            {paso === "password" && "Elige tu nueva contraseña"}
-            {paso === "exito"    && "¡Contraseña actualizada!"}
+            {paso === "ci"          && "Ingresa tu número de CI"}
+            {paso === "elegir_canal"&& "¿Dónde quieres recibir el código?"}
+            {paso === "codigo"      && "Ingresa el código que te enviamos"}
+            {paso === "password"    && "Elige tu nueva contraseña"}
+            {paso === "exito"       && "¡Contraseña actualizada!"}
           </p>
         </div>
 
         <div className="card space-y-5">
 
-          {/* ── Paso 1: correo ── */}
-          {paso === "correo" && (
+          {/* Paso 1: CI */}
+          {paso === "ci" && (
             <>
               <div>
-                <label className="label">Correo electrónico</label>
+                <label className="label">Número de CI</label>
                 <input
-                  type="email"
-                  value={correo}
-                  onChange={e => setCorreo(e.target.value)}
+                  type="text"
+                  value={ci}
+                  onChange={e => setCi(e.target.value)}
                   onKeyDown={e => e.key === "Enter" && solicitarCodigo()}
-                  placeholder="correo@ejemplo.com"
+                  placeholder="Ej: 12345678"
                   className="field"
                   autoFocus
                 />
               </div>
               {error && <p className="error-box">{error}</p>}
-              <button onClick={solicitarCodigo} disabled={loading || !correo}
-                className="btn-primary w-full py-3">
-                {loading ? <><span className="spinner" /> Enviando...</> : "Enviar código"}
+              <button onClick={solicitarCodigo} disabled={loading || !ci.trim()} className="btn-primary w-full py-3">
+                {loading ? <><span className="spinner" /> Buscando...</> : "Continuar"}
               </button>
               <Link href="/login" className="btn-ghost w-full text-sm flex items-center justify-center gap-2">
                 <ArrowLeft className="w-4 h-4" /> Volver al login
@@ -118,19 +128,50 @@ export default function RecuperarPasswordPage() {
             </>
           )}
 
-          {/* ── Paso 2: código ── */}
+          {/* Paso 2: elegir canal */}
+          {paso === "elegir_canal" && (
+            <>
+              <p className="text-sm text-slate-400">Tenemos dos métodos de contacto verificados para tu cuenta. ¿Por cuál prefieres recibir el código?</p>
+              <div className="space-y-2">
+                <label className={cn(
+                  "flex items-center gap-3 p-3 rounded-xl cursor-pointer border-2 transition-all",
+                  canal === "correo" ? "border-primary-500 bg-primary-500/10" : "border-slate-700 bg-slate-800/40"
+                )}>
+                  <input type="radio" value="correo" checked={canal === "correo"}
+                    onChange={() => setCanal("correo")} className="sr-only" />
+                  <div className={cn("w-4 h-4 rounded-full border-2 flex items-center justify-center",
+                    canal === "correo" ? "border-primary-400" : "border-slate-600")}>
+                    {canal === "correo" && <div className="w-2 h-2 rounded-full bg-primary-400" />}
+                  </div>
+                  <span className="text-sm text-slate-300">Correo: <strong>{correoMask}</strong></span>
+                </label>
+                <label className={cn(
+                  "flex items-center gap-3 p-3 rounded-xl cursor-pointer border-2 transition-all",
+                  canal === "celular" ? "border-primary-500 bg-primary-500/10" : "border-slate-700 bg-slate-800/40"
+                )}>
+                  <input type="radio" value="celular" checked={canal === "celular"}
+                    onChange={() => setCanal("celular")} className="sr-only" />
+                  <div className={cn("w-4 h-4 rounded-full border-2 flex items-center justify-center",
+                    canal === "celular" ? "border-primary-400" : "border-slate-600")}>
+                    {canal === "celular" && <div className="w-2 h-2 rounded-full bg-primary-400" />}
+                  </div>
+                  <span className="text-sm text-slate-300">Celular: <strong>{celularMask}</strong></span>
+                </label>
+              </div>
+              {error && <p className="error-box">{error}</p>}
+              <button onClick={enviarPorCanal} disabled={loading} className="btn-primary w-full py-3">
+                {loading ? <><span className="spinner" /> Enviando...</> : "Enviar código"}
+              </button>
+            </>
+          )}
+
+          {/* Paso 3: código */}
           {paso === "codigo" && (
             <>
-              <div className="bg-slate-800/60 rounded-xl px-4 py-3">
-                <p className="text-slate-500 text-xs">Enviamos el código a</p>
-                <p className="text-slate-200 text-sm font-medium">{correo}</p>
-              </div>
               <div>
                 <label className="label">Código de verificación</label>
                 <input
-                  type="text"
-                  inputMode="numeric"
-                  maxLength={6}
+                  type="text" inputMode="numeric" maxLength={6}
                   value={codigo}
                   onChange={e => setCodigo(e.target.value.replace(/\D/g, ""))}
                   placeholder="000000"
@@ -139,33 +180,24 @@ export default function RecuperarPasswordPage() {
                 />
               </div>
               {error && <p className="error-box">{error}</p>}
-              <button onClick={verificarCodigo} disabled={codigo.length !== 6}
-                className="btn-primary w-full py-3">
+              <button onClick={() => { if (codigo.length === 6) { setError(null); setPaso("password"); } else setError("El código debe tener 6 dígitos"); }}
+                disabled={codigo.length !== 6} className="btn-primary w-full py-3">
                 Verificar código
-              </button>
-              <button onClick={() => { setPaso("correo"); setCodigo(""); setError(null); }}
-                className="btn-ghost w-full text-sm">
-                <ArrowLeft className="w-4 h-4" /> Cambiar correo
               </button>
             </>
           )}
 
-          {/* ── Paso 3: nueva contraseña ── */}
+          {/* Paso 4: nueva contraseña */}
           {paso === "password" && (
             <>
               <div>
                 <label className="label">Nueva contraseña</label>
                 <div className="relative">
-                  <input
-                    type={show1 ? "text" : "password"}
-                    value={pass1}
-                    onChange={e => setPass1(e.target.value)}
-                    placeholder="Mínimo 8 caracteres"
-                    className="field pr-10"
-                    autoFocus
-                  />
+                  <input type={show1 ? "text" : "password"} value={pass1}
+                    onChange={e => setPass1(e.target.value)} placeholder="Mínimo 8 caracteres"
+                    className="field pr-10" autoFocus />
                   <button type="button" onClick={() => setShow1(!show1)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300">
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500">
                     {show1 ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
                 </div>
@@ -173,70 +205,42 @@ export default function RecuperarPasswordPage() {
               <div>
                 <label className="label">Confirmar contraseña</label>
                 <div className="relative">
-                  <input
-                    type={show2 ? "text" : "password"}
-                    value={pass2}
-                    onChange={e => setPass2(e.target.value)}
-                    placeholder="Repite la contraseña"
-                    className={cn("field pr-10", pass2 && pass1 !== pass2 && "field-err")}
-                  />
+                  <input type={show2 ? "text" : "password"} value={pass2}
+                    onChange={e => setPass2(e.target.value)} placeholder="Repite la contraseña"
+                    className={cn("field pr-10", pass2 && pass1 !== pass2 && "field-err")} />
                   <button type="button" onClick={() => setShow2(!show2)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300">
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500">
                     {show2 ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
                 </div>
                 {pass2 && pass1 !== pass2 && <p className="hint">Las contraseñas no coinciden</p>}
               </div>
-
               {pass1.length > 0 && (
-                <div className="space-y-2">
-                  <div className="flex gap-1">
-                    {[
-                      pass1.length >= 8,
-                      /[A-Z]/.test(pass1) && /[a-z]/.test(pass1),
-                      /[0-9]/.test(pass1),
-                    ].map((ok, i) => (
-                      <div key={i} className={cn(
-                        "h-1 flex-1 rounded-full transition-colors",
-                        ok ? (
-                          i === 0 ? "bg-amber-500" :
-                          i === 1 ? "bg-blue-500" : "bg-emerald-500"
-                        ) : "bg-slate-700"
-                      )} />
-                    ))}
-                  </div>
-                  <div className="space-y-1">
-                    {[
-                      { ok: pass1.length >= 8,          txt: "Mínimo 8 caracteres" },
-                      { ok: /[A-Z]/.test(pass1) && /[a-z]/.test(pass1), txt: "Mayúscula y minúscula" },
-                      { ok: /[0-9]/.test(pass1),        txt: "Al menos un número" },
-                    ].map(({ ok: cumple, txt }) => (
-                      <p key={txt} className={cn("text-xs flex items-center gap-1.5",
-                        cumple ? "text-emerald-400" : "text-slate-500")}>
-                        <span>{cumple ? "✓" : "○"}</span> {txt}
-                      </p>
-                    ))}
-                  </div>
+                <div className="space-y-1">
+                  {[
+                    { ok: pass1.length >= 8, txt: "Mínimo 8 caracteres" },
+                    { ok: /[A-Z]/.test(pass1) && /[a-z]/.test(pass1), txt: "Mayúscula y minúscula" },
+                    { ok: /[0-9]/.test(pass1), txt: "Al menos un número" },
+                  ].map(({ ok: cumple, txt }) => (
+                    <p key={txt} className={cn("text-xs flex items-center gap-1.5",
+                      cumple ? "text-emerald-400" : "text-slate-500")}>
+                      <span>{cumple ? "✓" : "○"}</span> {txt}
+                    </p>
+                  ))}
                 </div>
               )}
               {error && <p className="error-box">{error}</p>}
               <button
                 onClick={cambiarPassword}
-                disabled={
-                  loading ||
-                  pass1.length < 8 ||
-                  pass1 !== pass2 ||
-                  !/[A-Z]/.test(pass1) ||
-                  !/[a-z]/.test(pass1) ||
-                  !/[0-9]/.test(pass1)
-                }
+                disabled={loading || pass1.length < 8 || pass1 !== pass2
+                  || !/[A-Z]/.test(pass1) || !/[a-z]/.test(pass1) || !/[0-9]/.test(pass1)}
                 className="btn-primary w-full py-3">
                 {loading ? <><span className="spinner" /> Actualizando...</> : "Cambiar contraseña"}
               </button>
             </>
           )}
 
-          {/* ── Paso 4: éxito ── */}
+          {/* Paso 5: éxito */}
           {paso === "exito" && (
             <>
               <div className="text-center py-4">
@@ -245,9 +249,7 @@ export default function RecuperarPasswordPage() {
                   <span className="text-emerald-400 text-3xl">✓</span>
                 </div>
                 <p className="text-white font-semibold mb-1">¡Listo!</p>
-                <p className="text-slate-500 text-sm">
-                  Tu contraseña fue actualizada correctamente.
-                </p>
+                <p className="text-slate-500 text-sm">Tu contraseña fue actualizada.</p>
               </div>
               <Link href="/login" className="btn-primary w-full py-3 flex items-center justify-center gap-2">
                 Ir al login
@@ -256,9 +258,7 @@ export default function RecuperarPasswordPage() {
           )}
         </div>
 
-        <p className="text-center mt-6 text-slate-700 text-xs">
-          Universidad Mayor de San Andrés · FCPN
-        </p>
+        <p className="text-center mt-6 text-slate-700 text-xs">Universidad Mayor de San Andrés · FCPN</p>
       </div>
     </div>
   );

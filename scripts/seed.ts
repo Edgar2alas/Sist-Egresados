@@ -13,17 +13,8 @@ dotenv.config({ path: ".env.local" });
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 const db   = drizzle(pool, { schema });
 
-function generarPasswordInicial(
-  ci: string,
-  nombres: string,
-  apellidoPaterno?: string | null,
-  apellidoMaterno?: string | null,
-  apellidos?: string | null,
-): string {
-  const inicialNombre   = nombres.trim()[0]?.toUpperCase() ?? "";
-  const primerApellido  = apellidoPaterno?.trim() || apellidos?.trim() || "";
-  const inicialApellido = primerApellido[0]?.toUpperCase() ?? "";
-  return `${ci}${inicialNombre}${inicialApellido}`;
+function generarPasswordInicial(ci: string): string {
+  return ci;
 }
 
 async function main() {
@@ -342,11 +333,14 @@ async function main() {
 
   // Admin
   await db.insert(schema.usuario).values({
+    ci:           "admin",          // CI especial para el admin
     correo:       adminEmail,
     passwordHash: await bcrypt.hash(adminPass, 12),
     rol:          "admin",
     estado:       "activo",
     primerLogin:  false,
+    correoVerificado: true,
+    celularVerificado: false,
   });
   console.log(`   👑 Admin creado: ${adminEmail} | pass: ${adminPass}`);
 
@@ -362,28 +356,25 @@ async function main() {
   ];
 
   for (const { egresado: eg, email } of usuariosData) {
-    const passInicial = generarPasswordInicial(
-      eg.ci,
-      eg.nombres,
-      eg.apellidoPaterno,
-      eg.apellidoMaterno,
-      eg.apellidos,
-    );
+      const passInicial = generarPasswordInicial(eg.ci);
 
-    await db.insert(schema.usuario).values({
-      correo:       email,
-      passwordHash: await bcrypt.hash(passInicial, 12),
-      rol:          "egresado",
-      estado:       "activo",
-      idEgresado:   eg.id,
-      primerLogin:  true,
-    });
+      await db.insert(schema.usuario).values({
+        ci:                eg.ci,
+        correo:            email,
+        passwordHash:      await bcrypt.hash(passInicial, 12),
+        rol:               "egresado",
+        estado:            "activo",
+        idEgresado:        eg.id,
+        primerLogin:       true,
+        correoVerificado:  false,
+        celularVerificado: false,
+      });
 
-    const tipoLabel = eg.tipo === "Titulado" ? "🎓" : "📋";
-    console.log(`   ${tipoLabel} [${eg.tipo}] ${eg.nombres} ${eg.apellidos}`);
-    console.log(`      📧 ${email}`);
-    console.log(`      🔑 ${passInicial}\n`);
-  }
+      const tipoLabel = eg.tipo === "Titulado" ? "🎓" : "📋";
+      console.log(`   ${tipoLabel} [${eg.tipo}] ${eg.nombres} ${eg.apellidos}`);
+      console.log(`      CI (usuario): ${eg.ci}`);
+      console.log(`      🔑 Contraseña inicial: ${passInicial}\n`);
+    }
 
   // ── Resumen final ─────────────────────────────────────────────────────────
   console.log("\n✅ Seed completo!\n");
@@ -395,17 +386,17 @@ async function main() {
   console.log(`   🔑 ${adminPass}\n`);
 
   console.log("🎓 TITULADOS:\n");
-  for (const { egresado: eg, email } of usuariosData.filter(u => u.egresado.tipo === "Titulado")) {
-    const pass = generarPasswordInicial(eg.ci, eg.nombres, eg.apellidoPaterno, eg.apellidoMaterno, eg.apellidos);
+  for (const { egresado: eg } of usuariosData.filter(u => u.egresado.tipo === "Titulado")) {
+    const pass = generarPasswordInicial(eg.ci);
     console.log(`   📌 ${eg.nombres} ${eg.apellidos}`);
-    console.log(`      📧 ${email} | 🔑 ${pass}\n`);
+    console.log(`      CI: ${eg.ci} | 🔑 ${pass}\n`);
   }
 
-  console.log("📋 EGRESADOS SIN TÍTULO (Bloque 0):\n");
-  for (const { egresado: eg, email } of usuariosData.filter(u => u.egresado.tipo === "Egresado")) {
-    const pass = generarPasswordInicial(eg.ci, eg.nombres, eg.apellidoPaterno, eg.apellidoMaterno, eg.apellidos);
+    console.log("📋 EGRESADOS SIN TÍTULO (Bloque 0):\n");
+  for (const { egresado: eg } of usuariosData.filter(u => u.egresado.tipo === "Egresado")) {
+    const pass = generarPasswordInicial(eg.ci);
     console.log(`   📌 ${eg.nombres} ${eg.apellidos}`);
-    console.log(`      📧 ${email} | 🔑 ${pass}`);
+    console.log(`      CI: ${eg.ci} | 🔑 ${pass}`);
     console.log(`      💡 inicioProceso=${eg.inicioProceso} | planeaTitularse=${eg.planeaTitularse}\n`);
   }
 

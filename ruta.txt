@@ -50,11 +50,6 @@ Aquí está el roadmap actualizado:
 
 ---
 
-### ✅ BLOQUE 0 — Diferenciación Titulado / Egresado *(Completado)*
-### ✅ BLOQUE 1 — Formularios y CRUD completo según spec *(Completado)*
-
----
-
 ### 🟢 BLOQUE 2 — Autenticación por CI + Verificación de contacto
 
 **Qué hay que hacer:**

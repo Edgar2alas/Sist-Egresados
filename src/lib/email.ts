@@ -114,3 +114,26 @@ export async function sendResetPasswordEmail(opts: {
     codigo: opts.codigo,
   });
 }
+
+export async function sendVerificacionContactoEmail(opts: {
+  to: string;
+  nombres: string;
+  codigo: string;
+}): Promise<void> {
+  const contenido = `
+    <p style="color:#94a3b8;font-size:14px;line-height:1.6;margin:0 0 24px">
+      Hola <strong style="color:#e2e8f0">${opts.nombres}</strong>, usa este código para verificar tu correo electrónico:
+    </p>
+    <div style="background:#0f172a;border:1px solid #0284c7;border-radius:12px;padding:24px;text-align:center;margin:0 0 24px">
+      <p style="margin:0 0 8px;color:#64748b;font-size:12px;text-transform:uppercase;letter-spacing:2px">Código de verificación</p>
+      <p style="margin:0;color:#38bdf8;font-size:36px;font-weight:700;letter-spacing:8px;font-family:monospace">${opts.codigo}</p>
+      <p style="margin:12px 0 0;color:#64748b;font-size:12px">Válido por 15 minutos</p>
+    </div>`;
+
+  await enviar({
+    to:      opts.to,
+    subject: "Verifica tu correo — Sistema de Egresados Estadística UMSA",
+    html:    baseTemplate("Verificación de correo", contenido),
+    codigo:  opts.codigo,
+  });
+}

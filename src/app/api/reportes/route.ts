@@ -27,6 +27,9 @@ export async function GET(req: NextRequest) {
     if (empleo === "false")
       conds.push(sql`NOT EXISTS(SELECT 1 FROM historial_laboral h WHERE h.id_egresado=${egresado.id} AND h.fecha_fin IS NULL)`);
 
+    // Bloque 3: excluir fallecidos de estadísticas de empleabilidad
+    conds.push(sql`${egresado.fallecido} = false`);
+
     const where = conds.length > 0 ? and(...conds) : undefined;
 
     const rows = await db.select({

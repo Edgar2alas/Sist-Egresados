@@ -11,6 +11,7 @@ import MiPerfilHistorial from "@/components/perfil/MiPerfilHistorial";
 import MiPerfilPostgrados from "@/components/perfil/MiPerfilPostgrados";
 import DirectorioToggle from "@/components/perfil/DirectorioToggle";
 import SugerenciaForm from "@/components/perfil/SugerenciaForm";
+import ContactoVerificacionModal from "@/components/perfil/ContactoVerificacionModal";
 
 function calcularTiempoPrimerEmpleo(
   anioRef: number | null | undefined,
@@ -24,7 +25,12 @@ function calcularTiempoPrimerEmpleo(
 
 export default async function MiPerfilPage() {
  const session = await getSession();
-  if (!session || session.rol !== "egresado") redirect("/login");
+ if (!session || session.rol !== "egresado") redirect("/login");
+ const { usuario: usuarioTable } = await import("@/lib/schema");
+ const [usuarioData] = await db.select({
+    correoVerificado:  usuarioTable.correoVerificado,
+    celularVerificado: usuarioTable.celularVerificado,
+  }).from(usuarioTable).where(eq(usuarioTable.id, session.idUsuario)).limit(1);
   
   // Si no tiene idEgresado en sesión, ir a registro-inicial
   // pero solo si realmente no existe en BD
@@ -79,6 +85,13 @@ export default async function MiPerfilPage() {
         </Link>
       </div>
       <DirectorioToggle inicial={eg.mostrarEnDirectorio ?? false} />
+
+      <ContactoVerificacionModal
+        correo={eg.correoElectronico}
+        celular={eg.celular ?? eg.telefono}
+        correoVerificado={usuarioData?.correoVerificado ?? false}
+        celularVerificado={usuarioData?.celularVerificado ?? false}
+      />
       {/* ── Grid: datos personales + académicos ── */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 
@@ -121,12 +134,6 @@ export default async function MiPerfilPage() {
               { label: "Titulación", value: eg.anioTitulacion ? String(eg.anioTitulacion) : null },
               { label: "Modalidad", value: eg.modalidadTitulacion },
               { label: "Promedio", value: eg.promedio ? String(eg.promedio) : null },
-              {
-                label: "Permanencia",
-                value: eg.anioIngreso && eg.anioEgreso
-                  ? `${eg.anioEgreso - eg.anioIngreso} año(s)`
-                  : null
-              },
             ].map(({ label, value }) => value ? (
               <div key={label} className="flex items-start justify-between gap-4">
                 <p className="text-xs font-semibold uppercase tracking-wide shrink-0" style={{ color: "var(--placeholder)" }}>

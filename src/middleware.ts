@@ -8,6 +8,7 @@ export async function middleware(req: NextRequest) {
   // 1. Rutas públicas sin autenticación (antes de cualquier verificación)
   const publicRoutes = [
     "/activar-cuenta",
+    "/completar-contacto",
     "/recuperar-password",
     "/directorio",
     "/login",

@@ -11,6 +11,7 @@ import { cn } from "@/lib/utils";
 interface Props {
   egresado?:   any;
   redirectTo?: string;
+  esAdmin?:    boolean;
 }
 
 // ── Sección de formulario con encabezado ──────────────────────────────────────
@@ -28,7 +29,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   );
 }
 
-export default function EgresadoForm({ egresado: eg, redirectTo }: Props) {
+export default function EgresadoForm({ egresado: eg, redirectTo, esAdmin = false }: Props) {
   const router    = useRouter();
   const isEditing = !!eg;
   const [serverError, setServerError] = useState<string | null>(null);
@@ -67,11 +68,15 @@ export default function EgresadoForm({ egresado: eg, redirectTo }: Props) {
         promedio:            eg.promedio ? parseFloat(eg.promedio) : undefined,
         modalidadTitulacion: eg.modalidadTitulacion ?? undefined,
         // Campos exclusivos Egresado
-        inicioProceso:       eg.inicioProceso      ?? undefined,
-        motivoNoTitulacion:  eg.motivoNoTitulacion ?? "",
-        planeaTitularse:     eg.planeaTitularse     ?? undefined,
+        inicioProceso:       eg.inicioProceso       ?? undefined,
+        motivoNoTitulacion:  eg.motivoNoTitulacion  ?? "",
+        planeaTitularse:     eg.planeaTitularse      ?? undefined,
+        ciudadResidencia:    eg.ciudadResidencia     ?? "",
+        regionResidencia:    eg.regionResidencia     ?? "",
+        fallecido:           eg.fallecido            ?? false,
       } : {
         tipo: "Titulado",
+        fallecido: false,
       },
     });
 
@@ -326,6 +331,24 @@ export default function EgresadoForm({ egresado: eg, redirectTo }: Props) {
             placeholder="Notas adicionales (opcional)"
           />
         </div>
+
+        <div>
+          <label className="label">Ciudad de Residencia</label>
+          <input
+            {...register("ciudadResidencia")}
+            className="field"
+            placeholder="Ej: La Paz, Cochabamba..."
+          />
+        </div>
+
+        <div>
+          <label className="label">Región / Departamento de Residencia</label>
+          <input
+            {...register("regionResidencia")}
+            className="field"
+            placeholder="Ej: La Paz, Beni, Tarija..."
+          />
+        </div>
       </Section>
 
       {/* ── Datos Académicos ── */}
@@ -538,6 +561,34 @@ export default function EgresadoForm({ egresado: eg, redirectTo }: Props) {
               Esta información es confidencial y solo visible para el administrador.
             </p>
           </div>
+        </section>
+      )}
+
+      {/* ── Marcar como fallecido — solo admin ── */}
+      {esAdmin && (
+        <section
+          className="rounded-2xl p-4"
+          style={{
+            background: "rgba(220,38,38,0.04)",
+            border: "1px solid rgba(220,38,38,0.15)",
+          }}
+        >
+          <label className="flex items-center gap-3 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              {...register("fallecido")}
+              className="w-4 h-4 rounded"
+              style={{ accentColor: "#dc2626" }}
+            />
+            <div>
+              <p className="text-sm font-semibold" style={{ color: "#dc2626" }}>
+                Marcar como fallecido
+              </p>
+              <p className="text-xs mt-0.5" style={{ color: "var(--placeholder)" }}>
+                Este registro no aparecerá en el directorio ni en estadísticas de empleabilidad.
+              </p>
+            </div>
+          </label>
         </section>
       )}
 

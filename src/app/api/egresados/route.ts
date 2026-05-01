@@ -40,6 +40,9 @@ export async function GET(req: NextRequest) {
     if (empleo === "false")
       conds.push(sql`NOT EXISTS(SELECT 1 FROM historial_laboral h WHERE h.id_egresado=${egresado.id} AND h.fecha_fin IS NULL)`);
 
+    // Bloque 3: excluir fallecidos del listado admin por defecto
+    const mostrarFallecidos = sp.get("incluirFallecidos") === "true";
+    if (!mostrarFallecidos) conds.push(sql`${egresado.fallecido} = false`);
     const where = conds.length > 0 ? and(...conds) : undefined;
 
     const [{ total }] = await db
@@ -141,6 +144,9 @@ export async function POST(req: NextRequest) {
         inicioProceso:        d.tipo === "Egresado" ? (d.inicioProceso ?? null) : null,
         motivoNoTitulacion:   d.tipo === "Egresado" ? (d.motivoNoTitulacion ?? null) : null,
         planeaTitularse:      d.tipo === "Egresado" ? (d.planeaTitularse ?? null) : null,
+        ciudadResidencia:     d.ciudadResidencia    ?? null,
+        regionResidencia:     d.regionResidencia    ?? null,
+        // fallecido solo lo puede marcar el admin desde editar, no en creación
       }).returning();
 
       return nuevoEgresado;

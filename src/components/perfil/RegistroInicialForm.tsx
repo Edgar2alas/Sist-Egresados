@@ -71,12 +71,31 @@ export default function RegistroInicialForm() {
           <label className="label">Celular</label>
           <input {...register("celular")} type="tel" className="field" />
         </div>
+        
         <div className="md:col-span-2">
           <label className="label">Plan de Estudios</label>
           <select {...register("planEstudiosNombre")} className="field">
             <option value="">— Seleccionar —</option>
             {PLANES_ESTUDIO.map(p => <option key={p} value={p}>Plan {p}</option>)}
           </select>
+        </div>
+
+        <div>
+          <label className="label">Ciudad de Residencia</label>
+          <input
+            {...register("ciudadResidencia")}
+            className="field"
+            placeholder="Ej: La Paz"
+          />
+        </div>
+
+        <div>
+          <label className="label">Departamento de Residencia</label>
+          <input
+            {...register("regionResidencia")}
+            className="field"
+            placeholder="Ej: La Paz, Beni..."
+          />
         </div>
       </div>
       <button type="submit" disabled={isSubmitting} className="btn-primary w-full py-3">

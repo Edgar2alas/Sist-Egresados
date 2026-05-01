@@ -18,8 +18,9 @@ function LoginModal({ onClose }: { onClose: () => void }) {
   const [error, setError] = useState<string | null>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
 
-  const { register, handleSubmit, formState: { errors, isSubmitting } } =
-    useForm<LoginInput>({ resolver: zodResolver(loginSchema) });
+  const [ci,       setCi]       = useState("");
+  const [password, setPassword] = useState("");
+  const [loading,  setLoading]  = useState(false);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
@@ -31,22 +32,30 @@ function LoginModal({ onClose }: { onClose: () => void }) {
     };
   }, [onClose]);
 
-  const onSubmit = async (d: LoginInput) => {
+  const onSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
     setError(null);
-    const res  = await fetch("/api/auth/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(d),
-    });
-    const json = await res.json();
-    if (!res.ok) { setError(json.error); return; }
+    if (!ci.trim()) { setError("Ingresa tu CI"); return; }
+    if (!password)  { setError("Ingresa tu contraseña"); return; }
+    setLoading(true);
+    try {
+      const res  = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ci: ci.trim(), password }),
+      });
+      const json = await res.json();
+      if (!res.ok) { setError(json.error); return; }
 
-    if (json.data?.primerLogin) {
-      router.push(`/activar-cuenta?correo=${encodeURIComponent(d.correo)}`);
-      return;
-    }
-    router.push(json.data.rol === "admin" ? "/dashboard" : "/mi-perfil");
-    router.refresh();
+      if (json.data?.primerLogin) {
+        // Guardar idUsuario en sessionStorage para el flujo de activación
+        sessionStorage.setItem("activacion_idUsuario", String(json.data.idUsuario));
+        router.push("/activar-cuenta");
+        return;
+      }
+      router.push(json.data.rol === "admin" ? "/dashboard" : "/mi-perfil");
+      router.refresh();
+    } finally { setLoading(false); }
   };
 
   return (
@@ -85,18 +94,18 @@ function LoginModal({ onClose }: { onClose: () => void }) {
         </div>
 
         <div className="px-8 py-7">
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          <form onSubmit={onSubmit} className="space-y-4">
             <div>
-              <label className="label">Correo electrónico</label>
+              <label className="label">Número de CI</label>
               <input
-                {...register("correo")}
-                type="email"
-                autoComplete="email"
+                type="text"
+                value={ci}
+                onChange={e => setCi(e.target.value)}
+                autoComplete="username"
                 autoFocus
-                placeholder="tu@correo.com"
-                className={cn("field", errors.correo && "field-err")}
+                placeholder="Ej: 12345678"
+                className="field"
               />
-              {errors.correo && <p className="hint">{errors.correo.message}</p>}
             </div>
 
             <div>
@@ -108,11 +117,12 @@ function LoginModal({ onClose }: { onClose: () => void }) {
               </div>
               <div className="relative">
                 <input
-                  {...register("password")}
                   type={show ? "text" : "password"}
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
                   autoComplete="current-password"
                   placeholder="••••••••"
-                  className={cn("field pr-10", errors.password && "field-err")}
+                  className="field pr-10"
                 />
                 <button
                   type="button"
@@ -123,13 +133,12 @@ function LoginModal({ onClose }: { onClose: () => void }) {
                   {show ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
-              {errors.password && <p className="hint">{errors.password.message}</p>}
             </div>
 
             {error && <p className="error-box">{error}</p>}
 
-            <button type="submit" disabled={isSubmitting} className="btn-primary w-full py-3 mt-2">
-              {isSubmitting
+            <button type="submit" disabled={loading} className="btn-primary w-full py-3 mt-2">
+              {loading
                 ? <><span className="spinner" /> Ingresando...</>
                 : <><LogIn className="w-4 h-4" /> Ingresar</>}
             </button>
@@ -140,8 +149,7 @@ function LoginModal({ onClose }: { onClose: () => void }) {
             style={{ background: "var(--turquesa-pale)", border: "1px solid rgba(0,165,168,0.15)", color: "var(--grafito)" }}
           >
             <strong style={{ color: "var(--turquesa-dark)" }}>¿Primera vez?</strong>{" "}
-            Tu cuenta fue creada por la carrera. Tu contraseña inicial es tu número de CI.
-            Al ingresar, podrás actualizarla.
+            Ingresa con tu número de CI como usuario y contraseña. Al acceder podrás configurar tu cuenta.
           </div>
         </div>
       </div>

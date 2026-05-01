@@ -8,17 +8,18 @@ const SECRET = new TextEncoder().encode(
 const COOKIE = "eg_token";
 
 export interface Session {
-  idUsuario:  number;
-  correo:     string;
-  rol:        "admin" | "egresado";
-  idEgresado: number | null;
+  idUsuario:         number;
+  correo:            string;
+  rol:               "admin" | "egresado";
+  idEgresado:        number | null;
+  ci?:               string | null;
+  correoVerificado?: boolean;
+  celularVerificado?: boolean;
 }
 
-// Contraseñas
 export const hashPassword   = (p: string) => bcrypt.hash(p, 12);
 export const verifyPassword = (p: string, h: string) => bcrypt.compare(p, h);
 
-// JWT
 export async function signToken(s: Session): Promise<string> {
   return new SignJWT({ ...s })
     .setProtectedHeader({ alg: "HS256" })
@@ -34,7 +35,6 @@ export async function verifyToken(token: string): Promise<Session | null> {
   } catch { return null; }
 }
 
-// Sesión desde cookie
 export async function getSession(): Promise<Session | null> {
   const token = cookies().get(COOKIE)?.value;
   if (!token) return null;
@@ -46,7 +46,7 @@ export function setSession(token: string) {
     httpOnly: true,
     secure:   process.env.NODE_ENV === "production",
     sameSite: "lax",
-    maxAge:   60 * 60 * 8,   // 8 horas
+    maxAge:   60 * 60 * 8,
     path:     "/",
   });
 }

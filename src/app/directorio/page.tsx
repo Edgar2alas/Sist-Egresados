@@ -17,7 +17,10 @@ async function getEgresados(sp: SP) {
   const pageSize = 18;
   const page     = Math.max(1, parseInt(sp.page ?? "1"));
 
-  const conds: any[] = [eq(egresado.mostrarEnDirectorio, true)];
+  const conds: any[] = [
+    eq(egresado.mostrarEnDirectorio, true),
+    eq(egresado.fallecido, false),
+  ];
 
   if (sp.busqueda) conds.push(or(
     ilike(egresado.nombres,   `%${sp.busqueda}%`),

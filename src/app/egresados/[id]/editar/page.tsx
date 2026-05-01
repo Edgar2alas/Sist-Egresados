@@ -19,7 +19,7 @@ export default async function EditarEgresadoPage({ params }: { params: { id: str
   if (!eg) notFound();
 
   return (
-    <AdminLayout correo={session.correo}>
+    <AdminLayout correo={session.correo || ""}>
       <div className="max-w-2xl space-y-6">
         <Link href={`/egresados/${id}`} className="btn-ghost btn-sm inline-flex">
           <ArrowLeft className="w-4 h-4" /> Volver al detalle
@@ -29,7 +29,7 @@ export default async function EditarEgresadoPage({ params }: { params: { id: str
           <p className="page-sub">{eg.apellidoPaterno ?? eg.apellidos}, {eg.nombres}</p>
         </div>
         <div className="card">
-          <EgresadoForm egresado={eg} redirectTo={`/egresados/${id}`} />
+           <EgresadoForm egresado={eg} redirectTo={`/egresados/${id}`} esAdmin={true} />
         </div>
       </div>
     </AdminLayout>

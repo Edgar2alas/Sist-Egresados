@@ -3,7 +3,7 @@ import { MODALIDADES_TITULACION } from "@/lib/schema";
 
 // ── Auth ──────────────────────────────────────────────────────────────────────
 export const loginSchema = z.object({
-  correo:   z.string().email("Correo inválido"),
+  ci:       z.string().min(4, "CI inválido").max(20),
   password: z.string().min(1, "Contraseña requerida"),
 });
 
@@ -31,7 +31,11 @@ export const egresadoSchema = z.object({
   linkedin:            z.string().max(200).optional().nullable(),
   areaEspecializacion: z.string().max(150).optional().nullable(),
   observaciones:       z.string().optional().nullable(),
-  estadoLaboral: z.enum(["Empleado", "Desempleado", "Independiente"]).optional().nullable(),
+  estadoLaboral:       z.enum(["Empleado", "Desempleado", "Independiente"]).optional().nullable(),
+  // Bloque 3
+  ciudadResidencia:    z.string().max(100).optional().nullable(),
+  regionResidencia:    z.string().max(100).optional().nullable(),
+  fallecido:           z.boolean().optional().default(false),
 
   // Plan de estudios
   planEstudiosNombre: z.string().max(50).optional().nullable(),
@@ -162,6 +166,17 @@ export const nuevaPasswordSchema = z.object({
   message: "Las contraseñas no coinciden",
   path: ["confirmarPassword"],
 });
+
+export const contactoSchema = z.object({
+  tipo:  z.enum(["correo", "celular"]),
+  valor: z.string().min(1, "Requerido"),
+}).refine(d => {
+  if (d.tipo === "correo") return z.string().email().safeParse(d.valor).success;
+  if (d.tipo === "celular") return /^[0-9]{7,15}$/.test(d.valor);
+  return false;
+}, { message: "Valor inválido para el tipo seleccionado", path: ["valor"] });
+
+export type ContactoInput = z.infer<typeof contactoSchema>;
 
 // ── Tipos exportados ──────────────────────────────────────────────────────────
 export type LoginInput         = z.infer<typeof loginSchema>;

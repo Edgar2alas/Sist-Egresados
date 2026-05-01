@@ -118,3 +118,35 @@ export async function getDatosUsuarioParaEmail(idUsuario: number) {
 
   return row ?? null;
 }
+
+/** Crea token para verificar correo o celular */
+export async function crearTokenContacto(opts: {
+  idUsuario: number;
+  tipo: "verificar_correo" | "verificar_celular";
+  minutos?: number;
+}): Promise<string> {
+  const minutos = opts.minutos ?? 15;
+  const expiraEn = new Date(Date.now() + minutos * 60 * 1000);
+  const codigo = generarCodigo();
+
+  await db
+    .update(verificacionTokens)
+    .set({ usado: true })
+    .where(
+      and(
+        eq(verificacionTokens.idUsuario, opts.idUsuario),
+        eq(verificacionTokens.tipo, opts.tipo as any),
+        eq(verificacionTokens.usado, false)
+      )
+    );
+
+  await db.insert(verificacionTokens).values({
+    idUsuario: opts.idUsuario,
+    token:     codigo,
+    tipo:      opts.tipo as any,
+    expiraEn,
+    usado:     false,
+  });
+
+  return codigo;
+}

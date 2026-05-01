@@ -90,6 +90,9 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
       inicioProceso:        d.tipo === "Egresado" ? (d.inicioProceso ?? null) : null,
       motivoNoTitulacion:   d.tipo === "Egresado" ? (d.motivoNoTitulacion ?? null) : null,
       planeaTitularse:      d.tipo === "Egresado" ? (d.planeaTitularse ?? null) : null,
+      ciudadResidencia:     d.ciudadResidencia    ?? null,
+      regionResidencia:     d.regionResidencia    ?? null,
+      fallecido:            d.fallecido           ?? false,
     })
     .where(eq(egresado.id, id))
     .returning();

@@ -17,7 +17,9 @@ export const sectorEnum          = pgEnum("sector_enum",           ["Publico", "
 export const contratoEnum        = pgEnum("contrato_enum",         ["Indefinido", "Fijo", "Por obra", "Consultor", "Pasante", "Otro"]);
 export const postgradoTipoEnum   = pgEnum("postgrado_tipo_enum",   ["Diplomado", "Especialidad", "Maestria", "Doctorado", "Postdoctorado", "Otro"]);
 export const postgradoEstadoEnum = pgEnum("postgrado_estado_enum", ["En curso", "Finalizado", "Abandonado"]);
-export const tokenTipoEnum       = pgEnum("token_tipo_enum",       ["primer_login", "reset_password"]);
+export const tokenTipoEnum = pgEnum("token_tipo_enum", [
+  "primer_login", "reset_password", "verificar_correo", "verificar_celular",
+]);
 export const modalidadEnum       = pgEnum("modalidad_titulacion_enum", [
   "Tesis", "Proyecto de grado", "Trabajo dirigido", "Excelencia",
 ]);
@@ -83,13 +85,19 @@ export const egresado = pgTable("egresado", {
   linkedin:             varchar("linkedin",             { length: 200 }),
   areaEspecializacion:  varchar("area_especializacion", { length: 150 }),
   observaciones:        text("observaciones"),
-  estadoLaboral: varchar("estado_laboral", { length: 30 }),
+  estadoLaboral:        varchar("estado_laboral",       { length: 30 }),
+
+  // ── NUEVO — Bloque 3 ─────────────────────────────────────────────────────
+  ciudadResidencia:     varchar("ciudad_residencia",    { length: 100 }),
+  regionResidencia:     varchar("region_residencia",    { length: 100 }),
+  fallecido:            boolean("fallecido").notNull().default(false),
 }, (t) => ({
   ciIdx:         uniqueIndex("egresado_ci_idx").on(t.ci),
   anioEgresoIdx: index("idx_egresado_anio_egreso").on(t.anioEgreso),
   generoIdx:     index("idx_egresado_genero").on(t.genero),
   planNombreIdx: index("idx_egresado_plan_nombre").on(t.planEstudiosNombre),
-  tipoIdx:       index("idx_egresado_tipo").on(t.tipo),   // NUEVO
+  tipoIdx:       index("idx_egresado_tipo").on(t.tipo),
+  fallecidoIdx:  index("idx_egresado_fallecido").on(t.fallecido),
 }));
 
 // ── historial_laboral ────────────────────────────────────────────────────────
@@ -167,15 +175,19 @@ export const sugerencias = pgTable("sugerencias", {
 
 // ── usuario ───────────────────────────────────────────────────────────────────
 export const usuario = pgTable("usuario", {
-  id:           serial("id").primaryKey(),
-  correo:       varchar("correo",        { length: 150 }).notNull().unique(),
-  passwordHash: varchar("password_hash", { length: 255 }).notNull(),
-  rol:          usuarioRolEnum("rol").notNull().default("egresado"),
-  estado:       usuarioEstEnum("estado").notNull().default("activo"),
-  idEgresado:   integer("id_egresado")
+  id:                serial("id").primaryKey(),
+  ci:                varchar("ci",            { length: 20  }),
+  correo:            varchar("correo",        { length: 150 }).notNull().unique(),
+  passwordHash:      varchar("password_hash", { length: 255 }).notNull(),
+  rol:               usuarioRolEnum("rol").notNull().default("egresado"),
+  estado:            usuarioEstEnum("estado").notNull().default("activo"),
+  idEgresado:        integer("id_egresado")
     .references(() => egresado.id, { onDelete: "set null" }),
-  primerLogin:  boolean("primer_login").notNull().default(true),
-  creadoEn:     timestamp("creado_en").notNull().defaultNow(),
+  primerLogin:       boolean("primer_login").notNull().default(true),
+  celular:           varchar("celular",       { length: 20  }),
+  correoVerificado:  boolean("correo_verificado").notNull().default(false),
+  celularVerificado: boolean("celular_verificado").notNull().default(false),
+  creadoEn:          timestamp("creado_en").notNull().defaultNow(),
 });
 
 // ── verificacion_tokens ───────────────────────────────────────────────────────

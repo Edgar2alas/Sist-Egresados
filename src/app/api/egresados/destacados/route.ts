@@ -19,7 +19,7 @@ export async function GET(_: NextRequest) {
       ultimaActualizacion: egresado.ultimaActualizacion,
     })
     .from(egresado)
-    .where(eq(egresado.mostrarEnDirectorio, true))
+    .where(and(eq(egresado.mostrarEnDirectorio, true), eq(egresado.fallecido, false)))
     .orderBy(sql`${egresado.ultimaActualizacion} DESC NULLS LAST`)
     .limit(6);
 
