@@ -9,6 +9,7 @@ import { Plus, Search, Eye, Pencil } from "lucide-react";
 import AdminLayout from "@/components/shared/AdminLayout";
 import BuscadorEgresados from "@/components/egresados/BuscadorEgresados";
 import EliminarEgresadoBtn from "@/components/egresados/EliminarEgresadoBtn";
+import ImportarEgresadosBtn from "@/components/egresados/ImportarEgresadosBtn";
 import { cn, fmtDate } from "@/lib/utils";
 import { PLANES_ESTUDIO } from "@/lib/schema";
 
@@ -136,9 +137,12 @@ export default async function EgresadosPage({ searchParams }: { searchParams: SP
             <h1 className="page-title">Egresados</h1>
             <p className="page-sub">{total} egresado(s) encontrado(s)</p>
           </div>
-          <Link href="/egresados/nuevo" className="btn-primary btn-sm">
-            <Plus className="w-3.5 h-3.5" /> Nuevo Egresado
-          </Link>
+          <div className="flex items-center gap-2">
+            <ImportarEgresadosBtn />
+            <Link href="/egresados/nuevo" className="btn-primary btn-sm">
+              <Plus className="w-3.5 h-3.5" /> Nuevo Egresado
+            </Link>
+          </div>
         </div>
 
         <BuscadorEgresados

@@ -527,39 +527,6 @@ export default function LandingLoginPage() {
                 )
             }
           </div>
-
-          {/* CTA para egresados */}
-          <div
-            className="mt-10 rounded-2xl p-8 flex flex-col sm:flex-row items-center gap-6"
-            style={{ background: `linear-gradient(135deg, var(--marino) 0%, #1a3555 100%)`, border: "1px solid rgba(0,165,168,0.20)" }}
-          >
-            <div className="flex-1 text-center sm:text-left">
-              <h3 className="text-xl font-bold text-white mb-2" style={{ fontFamily: "'Source Serif 4', serif" }}>
-                ¿Eres egresado o titulado de la carrera?
-              </h3>
-              <p className="text-sm" style={{ color: "rgba(255,255,255,0.65)" }}>
-                Aparece en este directorio. Los perfiles actualizados se muestran primero
-                y son más visibles para empleadores y proyectos de investigación.
-              </p>
-            </div>
-            <button
-              onClick={() => setModalOpen(true)}
-              className="flex items-center gap-2 px-6 py-3 rounded-xl font-semibold text-sm shrink-0 transition-all"
-              style={{ background: "var(--turquesa)", color: "white", boxShadow: "0 4px 16px rgba(0,165,168,0.35)" }}
-              onMouseEnter={e => {
-                (e.currentTarget as HTMLElement).style.background = "var(--turquesa-dark)";
-                (e.currentTarget as HTMLElement).style.transform = "scale(1.02)";
-              }}
-              onMouseLeave={e => {
-                (e.currentTarget as HTMLElement).style.background = "var(--turquesa)";
-                (e.currentTarget as HTMLElement).style.transform = "scale(1)";
-              }}
-            >
-              <LogIn className="w-4 h-4" />
-              Unirme al directorio
-            </button>
-          </div>
-          
       {/* CTA para egresados */}
       <div
         className="mt-10 rounded-2xl p-8 flex flex-col sm:flex-row items-center gap-6"
