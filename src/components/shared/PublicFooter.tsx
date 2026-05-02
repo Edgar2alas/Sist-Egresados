@@ -1,254 +1,376 @@
 "use client";
 import Link from "next/link";
-import { MapPin, Phone, Mail, Globe, ExternalLink } from "lucide-react";
+import {
+  Globe as FacebookIcon,
+  Send as TwitterIcon,
+  Play as YouTubeIcon,
+  Camera as InstagramIcon,
+  Mail,
+  MapPin,
+  Phone,
+  ArrowRight,
+  ExternalLink,
+} from "lucide-react";
+
+// ── Sub-componentes internos (equivalentes a los del compañero) ──────────────
+
+function SocialLink({
+  href,
+  label,
+  icon: Icon,
+}: {
+  href: string;
+  label: string;
+  icon: React.ElementType;
+}) {
+  return (
+    <a
+      href={href}
+      aria-label={label}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="size-[38px] rounded-lg flex items-center justify-center border transition-colors"
+      style={{
+        background: "rgba(255,255,255,0.10)",
+        borderColor: "rgba(255,255,255,0.15)",
+        color: "rgba(255,255,255,0.70)",
+      }}
+      onMouseEnter={(e) => {
+        (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.20)";
+        (e.currentTarget as HTMLElement).style.color = "#fff";
+      }}
+      onMouseLeave={(e) => {
+        (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.10)";
+        (e.currentTarget as HTMLElement).style.color = "rgba(255,255,255,0.70)";
+      }}
+    >
+      <Icon className="w-4 h-4" />
+    </a>
+  );
+}
+
+function FooterLinkList({
+  title,
+  links,
+}: {
+  title: string;
+  links: { label: string; href: string }[];
+}) {
+  return (
+    <div>
+      <h3 className="font-bold text-xs text-white uppercase tracking-widest mb-4">
+        {title}
+      </h3>
+      <ul className="space-y-2.5">
+        {links.map((link) => (
+          <li key={link.label}>
+            <a
+              href={link.href}
+              className="flex items-center gap-2 text-[13px] transition-colors group"
+              style={{ color: "rgba(255,255,255,0.70)" }}
+              onMouseEnter={(e) =>
+                ((e.currentTarget as HTMLElement).style.color = "#fff")
+              }
+              onMouseLeave={(e) =>
+                ((e.currentTarget as HTMLElement).style.color = "rgba(255,255,255,0.70)")
+              }
+            >
+              <ArrowRight className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
+              <span>{link.label}</span>
+            </a>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function ExternalAccessLinks({
+  title = "Accesos Directos",
+  links,
+}: {
+  title?: string;
+  links: { label: string; href: string }[];
+}) {
+  return (
+    <div className="mt-6 space-y-2">
+      <h4 className="font-bold text-xs uppercase tracking-widest mb-3" style={{ color: "rgba(255,255,255,0.70)" }}>
+        {title}
+      </h4>
+      {links.map((link) => (
+        <a
+          key={link.label}
+          href={link.href}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center gap-1.5 text-[12px] transition-colors"
+          style={{ color: "rgba(255,255,255,0.70)" }}
+          onMouseEnter={(e) =>
+            ((e.currentTarget as HTMLElement).style.color = "#fff")
+          }
+          onMouseLeave={(e) =>
+            ((e.currentTarget as HTMLElement).style.color = "rgba(255,255,255,0.70)")
+          }
+        >
+          <ExternalLink className="w-3 h-3 shrink-0" />
+          <span>{link.label}</span>
+        </a>
+      ))}
+    </div>
+  );
+}
+
+// ── Componente principal ─────────────────────────────────────────────────────
 
 export default function PublicFooter() {
+  const academicLinks = [
+    { label: "Plan de Estudios", href: "#" },
+    { label: "Malla Curricular", href: "#" },
+    { label: "Calendario Académico", href: "#" },
+    { label: "Docentes", href: "#" },
+    { label: "Trámites y Servicios", href: "#" },
+  ];
+
+  const postgradoLinks = [
+    { label: "Maestría en Análisis de Datos", href: "#" },
+    { label: "Diplomados", href: "#" },
+    { label: "Cursos de Actualización", href: "#" },
+    { label: "IETA — Investigación", href: "#" },
+    { label: "Repositorio Institucional", href: "#" },
+  ];
+
+  const directAccessLinks = [
+    { label: "Moodle — Aula Virtual", href: "https://virtual.umsa.bo" },
+    { label: "SIA — Sistema Académico", href: "https://sia.umsa.bo" },
+    { label: "Webmail UMSA", href: "https://webmail.umsa.bo" },
+  ];
+
+  const socialLinks = [
+    { href: "#", label: "Facebook", icon: FacebookIcon },
+    { href: "#", label: "Twitter", icon: TwitterIcon },
+    { href: "#", label: "YouTube", icon: YouTubeIcon },
+    { href: "#", label: "Instagram", icon: InstagramIcon },
+  ];
+
   return (
-    <footer style={{ background: "var(--marino)" }}>
+    <footer style={{ background: "linear-gradient(170deg, #001d3d 0%, #003d6e 50%, #00447e 100%)" }}>
+      {/* Decoración de ondas SVG */}
+      <div className="relative overflow-hidden" aria-hidden="true">
+        <div className="absolute inset-0 pointer-events-none">
+          <svg
+            className="absolute inset-0 w-full h-full opacity-[0.06]"
+            viewBox="0 0 1400 80"
+            preserveAspectRatio="none"
+            fill="none"
+          >
+            <path
+              d="M0 60C233 60 467 40 700 14C933 -12 1167 10 1400 60"
+              stroke="white"
+              strokeWidth="1.8"
+            />
+            <path
+              d="M0 68C233 68 467 48 700 22C933 -4 1167 18 1400 68"
+              stroke="white"
+              strokeWidth="1.3"
+              opacity="0.6"
+            />
+          </svg>
+        </div>
+      </div>
 
-      {/* Franja turquesa superior */}
-      <div className="h-0.5 w-full" style={{ background: "var(--turquesa)" }} />
+      {/* Línea blanca superior */}
+      <div
+        className="h-[3px]"
+        style={{
+          background: "linear-gradient(90deg, #ffffff, rgba(255,255,255,0.5), #ffffff)",
+        }}
+      />
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10">
+      {/* Contenido principal */}
+      <div className="max-w-[1200px] mx-auto px-4 sm:px-6 md:px-12 lg:px-20 py-10 sm:py-14">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 sm:gap-10">
 
-          {/* Col 1 — Identidad */}
-          <div className="lg:col-span-1">
+          {/* Columna 1 — Identidad + contacto + redes */}
+          <div className="lg:col- span-1">
             <div className="flex items-center gap-3 mb-4">
+              <img
+                src="/iconos/blancopeq.png"
+                alt="Logo pequeño blanco de la Carrera de Estadística"
+                className="h-[96px] w-[96px] object-contain shrink-0"
+                onError={(e) => {
+                  // Fallback: mostrar el símbolo σ si la imagen no carga
+                  const target = e.currentTarget as HTMLImageElement;
+                  target.style.display = "none";
+                  const sibling = target.nextSibling as HTMLElement | null;
+                  if (sibling) sibling.style.display = "flex";
+                }}
+              />
+              {/* Fallback σ (oculto por defecto, se muestra si la imagen falla) */}
               <div
-                className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
-                style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.12)" }}
+                className="h-[96px] w-[96px] rounded-xl items-center justify-center shrink-0 text-3xl font-bold"
+                style={{
+                  display: "none",
+                  background: "rgba(255,255,255,0.08)",
+                  border: "1px solid rgba(255,255,255,0.12)",
+                  color: "var(--turquesa)",
+                  fontFamily: "'Source Serif 4', serif",
+                }}
               >
-                <span
-                  className="text-xl font-bold"
-                  style={{ color: "var(--turquesa)", fontFamily: "'Source Serif 4', serif" }}
-                >
-                  σ
-                </span>
+                σ
               </div>
               <div>
-                <p
-                  className="text-white font-semibold text-sm"
-                  style={{ fontFamily: "'Source Serif 4', serif" }}
-                >
+                <p className="font-bold text-base text-white leading-tight">
                   Carrera de Estadística
                 </p>
-                <p className="text-xs" style={{ color: "rgba(255,255,255,0.50)" }}>
+                <p className="text-[11px] leading-tight" style={{ color: "rgba(255,255,255,0.70)" }}>
                   UMSA · Bolivia
                 </p>
               </div>
             </div>
 
-            <p className="text-sm leading-relaxed mb-5" style={{ color: "rgba(255,255,255,0.60)" }}>
+            <p
+              className="text-base leading-relaxed mb-5"
+              style={{ color: "rgba(255,255,255,0.70)" }}
+            >
               Formando estadísticos y científicos de datos para el desarrollo
               de Bolivia desde 1974.
             </p>
 
-            <div className="space-y-2.5">
-              {[
-                { icon: MapPin, text: "Av. Villazón N° 1995, Monoblock Central, Piso 3 — La Paz, Bolivia" },
-                { icon: Phone, text: "(591-2) 2442100" },
-                { icon: Mail,  text: "estadistica@umsa.bo" },
-              ].map(({ icon: Icon, text }, i) => (
-                <div key={i} className="flex gap-2.5 text-sm" style={{ color: "rgba(255,255,255,0.55)" }}>
-                  <Icon className="w-4 h-4 shrink-0 mt-0.5" style={{ color: "var(--turquesa)" }} />
-                  <span>{text}</span>
-                </div>
-              ))}
+            <div className="space-y-3">
+              <div className="flex items-start gap-3">
+                <MapPin
+                  className="w-4 h-4 shrink-0 mt-0.5"
+                  style={{ color: "rgba(255,255,255,0.90)" }}
+                />
+                <p
+                  className="text-[12px] leading-snug"
+                  style={{ color: "rgba(255,255,255,0.70)" }}
+                >
+                  Av. Villazón N° 1995, Monoblock Central,
+                  <br />
+                  Piso 3 — La Paz, Bolivia
+                </p>
+              </div>
+              <div className="flex items-center gap-3">
+                <Phone
+                  className="w-4 h-4 shrink-0"
+                  style={{ color: "rgba(255,255,255,0.90)" }}
+                />
+                <a
+                  href="tel:+59122442100"
+                  className="text-[12px] transition-colors"
+                  style={{ color: "rgba(255,255,255,0.70)" }}
+                  onMouseEnter={(e) =>
+                    ((e.currentTarget as HTMLElement).style.color = "#fff")
+                  }
+                  onMouseLeave={(e) =>
+                    ((e.currentTarget as HTMLElement).style.color = "rgba(255,255,255,0.70)")
+                  }
+                >
+                  (591-2) 2442100
+                </a>
+              </div>
+              <div className="flex items-center gap-3">
+                <Mail
+                  className="w-4 h-4 shrink-0"
+                  style={{ color: "rgba(255,255,255,0.90)" }}
+                />
+                <a
+                  href="mailto:estadistica@umsa.bo"
+                  className="text-[12px] transition-colors"
+                  style={{ color: "rgba(255,255,255,0.70)" }}
+                  onMouseEnter={(e) =>
+                    ((e.currentTarget as HTMLElement).style.color = "#fff")
+                  }
+                  onMouseLeave={(e) =>
+                    ((e.currentTarget as HTMLElement).style.color = "rgba(255,255,255,0.70)")
+                  }
+                >
+                  estadistica@umsa.bo
+                </a>
+              </div>
             </div>
 
             {/* Redes sociales */}
-            <div className="flex gap-2 mt-5">
-              {[
-                { label: "Web",       href: "https://estadistica.umsa.bo", icon: Globe },
-                { label: "Facebook",  href: "#", icon: ExternalLink },
-                { label: "YouTube",   href: "#", icon: ExternalLink },
-                { label: "Instagram", href: "#", icon: ExternalLink },
-              ].map(({ href, label, icon: Icon }) => (
-                <a
-                  key={label}
-                  href={href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-9 h-9 flex items-center justify-center rounded-lg transition-all"
-                  style={{
-                    background: "rgba(255,255,255,0.07)",
-                    border: "1px solid rgba(255,255,255,0.10)",
-                    color: "rgba(255,255,255,0.55)",
-                  }}
-                  title={label}
-                >
-                  <Icon className="w-4 h-4" />
-                </a>
+            <div className="flex gap-3 mt-6">
+              {socialLinks.map((item, idx) => (
+                <SocialLink
+                  key={`${item.label}-${idx}`}
+                  href={item.href}
+                  label={item.label}
+                  icon={item.icon}
+                />
               ))}
             </div>
           </div>
 
-          {/* Col 2 — Académico */}
+          {/* Columna 2 — Académico */}
+          <FooterLinkList title="Académico" links={academicLinks} />
+
+          {/* Columna 3 — Postgrado e IETA + Accesos directos */}
           <div>
-            <h4
-              className="text-xs font-semibold uppercase tracking-widest mb-4"
-              style={{ color: "var(--turquesa)" }}
-            >
-              Académico
-            </h4>
-            <ul className="space-y-2.5">
-              {[
-                "Plan de Estudios",
-                "Malla Curricular",
-                "Calendario Académico",
-                "Docentes",
-                "Trámites y Servicios",
-              ].map(item => (
-                <li key={item}>
-                  <a
-                    href="#"
-                    className="text-sm transition-colors"
-                    style={{ color: "rgba(255,255,255,0.60)" }}
-                    onMouseEnter={e => (e.target as HTMLElement).style.color = "var(--turquesa)"}
-                    onMouseLeave={e => (e.target as HTMLElement).style.color = "rgba(255,255,255,0.60)"}
-                  >
-                    {item}
-                  </a>
-                </li>
-              ))}
-            </ul>
+            <FooterLinkList title="Postgrado e IETA" links={postgradoLinks} />
+            <ExternalAccessLinks links={directAccessLinks} />
           </div>
 
-          {/* Col 3 — Postgrado e IETA */}
+          {/* Columna 4 — Ubicación (mapa + horario) */}
           <div>
-            <h4
-              className="text-xs font-semibold uppercase tracking-widest mb-4"
-              style={{ color: "var(--turquesa)" }}
-            >
-              Postgrado e IETA
-            </h4>
-            <ul className="space-y-2.5">
-              {[
-                "Maestría en Análisis de Datos",
-                "Diplomados",
-                "Cursos de Actualización",
-                "IETA — Investigación",
-                "Repositorio Institucional",
-              ].map(item => (
-                <li key={item}>
-                  <a
-                    href="#"
-                    className="text-sm transition-colors"
-                    style={{ color: "rgba(255,255,255,0.60)" }}
-                    onMouseEnter={e => (e.target as HTMLElement).style.color = "var(--turquesa)"}
-                    onMouseLeave={e => (e.target as HTMLElement).style.color = "rgba(255,255,255,0.60)"}
-                  >
-                    {item}
-                  </a>
-                </li>
-              ))}
-            </ul>
-
-            <div className="mt-6">
-              <h4
-                className="text-xs font-semibold uppercase tracking-widest mb-4"
-                style={{ color: "var(--turquesa)" }}
-              >
-                Accesos Directos
-              </h4>
-              <ul className="space-y-2.5">
-                {[
-                  { label: "Moodle — Aula Virtual", href: "#" },
-                  { label: "SIA — Sistema Académico", href: "#" },
-                  { label: "Webmail UMSA",           href: "#" },
-                ].map(({ label, href }) => (
-                  <li key={label}>
-                    <a
-                      href={href}
-                      className="text-sm flex items-center gap-1.5 transition-colors"
-                      style={{ color: "rgba(255,255,255,0.60)" }}
-                      onMouseEnter={e => (e.target as HTMLElement).style.color = "var(--turquesa)"}
-                      onMouseLeave={e => (e.target as HTMLElement).style.color = "rgba(255,255,255,0.60)"}
-                    >
-                      <ExternalLink className="w-3 h-3 shrink-0" />
-                      {label}
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
-
-          {/* Col 4 — Sistema Egresados CTA */}
-          <div>
-            <h4
-              className="text-xs font-semibold uppercase tracking-widest mb-4"
-              style={{ color: "var(--turquesa)" }}
-            >
-              Sistema de Egresados
-            </h4>
-
+            <h3 className="font-bold text-xs text-white uppercase tracking-widest mb-4">
+              Ubicación
+            </h3>
             <div
-              className="rounded-2xl p-5"
+              className="rounded-xl overflow-hidden shadow-lg mb-3"
+              style={{ border: "1px solid rgba(255,255,255,0.15)" }}
+            >
+              <iframe
+                title="Ubicación Carrera de Estadística UMSA"
+                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3825.1892!2d-68.1196!3d-16.5046!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x915f20d9f45f0001%3A0xabcdef1234!2sAv.+Villaz%C3%B3n+1995%2C+La+Paz!5e0!3m2!1ses!2sbo!4v1000000000000"
+                width="100%"
+                height="160"
+                style={{
+                  border: 0,
+                  filter: "grayscale(30%) brightness(0.9) contrast(1.1)",
+                  display: "block",
+                }}
+                allowFullScreen
+                loading="lazy"
+                referrerPolicy="no-referrer-when-downgrade"
+              />
+            </div>
+            <div
+              className="rounded-xl p-4"
               style={{
-                background: "rgba(0,165,168,0.08)",
-                border: "1px solid rgba(0,165,168,0.20)",
+                background: "rgba(255,255,255,0.10)",
+                border: "1px solid rgba(255,255,255,0.15)",
               }}
             >
-              <p className="text-sm font-semibold text-white mb-2">
-                ¿Eres egresado?
-              </p>
-              <p className="text-xs mb-4" style={{ color: "rgba(255,255,255,0.60)" }}>
-                Actualiza tu perfil y aparece en nuestro directorio de egresados.
-              </p>
-              <Link
-                href="/login"
-                className="block w-full text-center py-2.5 px-4 rounded-xl text-sm font-semibold transition-all"
-                style={{
-                  background: "var(--turquesa)",
-                  color: "#fff",
-                  boxShadow: "0 2px 8px rgba(0,165,168,0.30)",
-                }}
-              >
-                Acceder al Sistema
-              </Link>
-            </div>
-
-            {/* Horario */}
-            <div
-              className="mt-4 rounded-xl p-4"
-              style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)" }}
-            >
-              <p className="text-xs font-semibold text-white mb-2">Horario de atención</p>
-              <p className="text-xs" style={{ color: "rgba(255,255,255,0.55)" }}>
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-2 h-2 rounded-full bg-white animate-pulse" />
+                <span className="text-[11px] font-semibold text-white">
+                  Horario de atención
+                </span>
+              </div>
+              <p className="text-[12px]" style={{ color: "rgba(255,255,255,0.70)" }}>
                 Lunes a Viernes: 08:00 — 17:00
               </p>
-              <p className="text-xs" style={{ color: "rgba(255,255,255,0.55)" }}>
+              <p className="text-[12px]" style={{ color: "rgba(255,255,255,0.70)" }}>
                 Sábados: 08:00 — 12:00
               </p>
             </div>
           </div>
-
         </div>
       </div>
 
-      {/* Línea inferior */}
-      <div style={{ borderTop: "1px solid rgba(255,255,255,0.07)" }}>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex flex-col sm:flex-row items-center justify-between gap-2">
-          <p className="text-xs" style={{ color: "rgba(255,255,255,0.35)" }}>
-            © {new Date().getFullYear()} Carrera de Estadística — Universidad Mayor de San Andrés.
-            Todos los derechos reservados.
+      {/* Barra inferior de copyright */}
+      <div style={{ borderTop: "1px solid rgba(255,255,255,0.10)" }}>
+        <div className="max-w-[1200px] mx-auto px-6 sm:px-12 lg:px-20 py-5 flex flex-col sm:flex-row items-center justify-between gap-3">
+          <p
+            className="text-[12px] text-center sm:text-right"
+            style={{ color: "rgba(255,255,255,0.60)" }}
+          >
+            © {new Date().getFullYear()} Carrera de Estadística — Universidad Mayor de San
+            Andrés. Todos los derechos reservados.
           </p>
-          <div className="flex gap-4">
-            {["Privacidad", "Términos"].map(label => (
-              <a
-                key={label}
-                href="#"
-                className="text-xs transition-colors"
-                style={{ color: "rgba(255,255,255,0.35)" }}
-                onMouseEnter={e => (e.target as HTMLElement).style.color = "rgba(255,255,255,0.70)"}
-                onMouseLeave={e => (e.target as HTMLElement).style.color = "rgba(255,255,255,0.35)"}
-              >
-                {label}
-              </a>
-            ))}
-          </div>
         </div>
       </div>
     </footer>
