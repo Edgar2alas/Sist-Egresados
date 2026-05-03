@@ -1,8 +1,8 @@
 "use client";
 // src/components/perfil/HistorialForm.tsx
-import { useState, useRef } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Save, X, Upload, FileText, AlertCircle } from "lucide-react";
+import { Save, X} from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface Props {
@@ -17,12 +17,10 @@ const SECTORES       = ["Publico", "Privado", "Independiente", "ONG", "Otro"] as
 export default function HistorialForm({ idEgresado, historial, onSuccess }: Props) {
   const router    = useRouter();
   const isEditing = !!historial;
-  const fileRef   = useRef<HTMLInputElement>(null);
 
   const [error,    setError]    = useState<string | null>(null);
   const [loading,  setLoading]  = useState(false);
   const [esActual, setEsActual] = useState(historial ? historial.fechaFin === null : false);
-  const [archivo,  setArchivo]  = useState<File | null>(null);
 
   const [form, setForm] = useState({
     empresa:      historial?.empresa      ?? "",
@@ -36,20 +34,6 @@ export default function HistorialForm({ idEgresado, historial, onSuccess }: Prop
   });
 
   const set = (k: string, v: string) => setForm(f => ({ ...f, [k]: v }));
-
-  const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const f = e.target.files?.[0];
-    if (!f) return;
-    const permitidos = ["application/pdf", "image/jpeg", "image/png", "image/webp"];
-    if (!permitidos.includes(f.type)) {
-      setError("Solo se permiten archivos PDF, JPG, PNG o WEBP"); return;
-    }
-    if (f.size > 5 * 1024 * 1024) {
-      setError("El archivo no puede superar los 5MB"); return;
-    }
-    setError(null);
-    setArchivo(f);
-  };
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -95,7 +79,6 @@ export default function HistorialForm({ idEgresado, historial, onSuccess }: Prop
         fd.append("fechaInicio",        form.fechaInicio);
         fd.append("fechaFin",           esActual ? "" : form.fechaFin);
         fd.append("actualmenteTrabaja", String(esActual));
-        if (archivo) fd.append("documento", archivo);
         res = await fetch(url, { method: "POST", body: fd });
       }
 
@@ -206,69 +189,6 @@ export default function HistorialForm({ idEgresado, historial, onSuccess }: Prop
       )}
 
       {/* ── Documento de verificación ── */}
-      {!isEditing && (
-        <div
-          className="rounded-xl p-4"
-          style={{ background: "var(--turquesa-pale)", border: "1px solid rgba(0,165,168,0.20)" }}
-        >
-          <div className="flex items-start gap-3 mb-3">
-            <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" style={{ color: "var(--turquesa-dark)" }} />
-            <div>
-              <p className="text-sm font-semibold" style={{ color: "var(--turquesa-dark)" }}>
-                Documento de verificación
-              </p>
-                <p className="text-xs mt-0.5" style={{ color: "var(--gris-grafito)" }}>
-                Adjunta un certificado de trabajo, contrato o credencial institucional.
-                El administrador revisará y confirmará tu experiencia.{" "}
-                <span className="font-medium" style={{ color: "var(--turquesa-dark)" }}>
-                  El documento es opcional.
-                </span>
-              </p>
-            </div>
-          </div>
-
-          {archivo ? (
-            <div className="flex items-center gap-3 p-3 rounded-lg" style={{ background: "var(--blanco)", border: "1px solid var(--borde)" }}>
-              <FileText className="w-4 h-4 shrink-0" style={{ color: "var(--turquesa)" }} />
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium truncate" style={{ color: "var(--azul-pizarra)" }}>{archivo.name}</p>
-                <p className="text-xs" style={{ color: "var(--placeholder)" }}>
-                  {(archivo.size / 1024).toFixed(0)} KB
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => { setArchivo(null); if (fileRef.current) fileRef.current.value = ""; }}
-                className="btn-ghost btn-xs"
-              >
-                <X className="w-3 h-3" />
-              </button>
-            </div>
-          ) : (
-            <button
-              type="button"
-              onClick={() => fileRef.current?.click()}
-              className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg text-sm font-medium transition-all"
-              style={{
-                background: "var(--blanco)",
-                border: "1.5px dashed rgba(0,165,168,0.40)",
-                color: "var(--turquesa-dark)",
-              }}
-            >
-              <Upload className="w-4 h-4" />
-              Adjuntar documento (PDF, JPG, PNG — máx. 5MB)
-            </button>
-          )}
-
-          <input
-            ref={fileRef}
-            type="file"
-            accept=".pdf,.jpg,.jpeg,.png,.webp"
-            onChange={handleFile}
-            className="hidden"
-          />
-        </div>
-      )}
 
       {/* Estado de verificación si ya existe */}
       {isEditing && historial?.verificacionEstado && (

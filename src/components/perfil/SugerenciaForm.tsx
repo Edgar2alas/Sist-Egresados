@@ -1,18 +1,9 @@
 "use client";
 import { useState } from "react";
 import { Send, CheckCircle } from "lucide-react";
-import { cn } from "@/lib/utils";
-
-const TIPOS = [
-  "Sugerencia general",
-  "Sugerencia para el sistema",
-  "Especializacion recomendada",
-] as const;
 
 export default function SugerenciaForm() {
-  const [tipo,      setTipo]      = useState<string>(TIPOS[0]);
   const [mensaje,   setMensaje]   = useState("");
-  const [anonima,   setAnonima]   = useState(false);
   const [loading,   setLoading]   = useState(false);
   const [enviado,   setEnviado]   = useState(false);
   const [error,     setError]     = useState<string | null>(null);
@@ -26,7 +17,7 @@ export default function SugerenciaForm() {
       const res  = await fetch("/api/sugerencias", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ tipo, mensaje, esAnonima: anonima }),
+        body: JSON.stringify({ tipo: "Sugerencia general", mensaje, esAnonima: false }),
       });
       const json = await res.json();
       if (!res.ok) { setError(json.error); return; }
@@ -45,10 +36,7 @@ export default function SugerenciaForm() {
       <p className="text-sm mt-1 mb-4" style={{ color: "var(--gris-grafito)" }}>
         Gracias por tu aporte a la carrera.
       </p>
-      <button
-        onClick={() => setEnviado(false)}
-        className="btn-slate btn-sm"
-      >
+      <button onClick={() => setEnviado(false)} className="btn-slate btn-sm">
         Enviar otra
       </button>
     </div>
@@ -57,18 +45,6 @@ export default function SugerenciaForm() {
   return (
     <form onSubmit={onSubmit} className="space-y-4">
       {error && <p className="error-box">{error}</p>}
-
-      <div>
-        <label className="label">Tipo de sugerencia</label>
-        <select
-          value={tipo}
-          onChange={e => setTipo(e.target.value)}
-          className="field"
-          style={{ background: "var(--humo)", color: "var(--azul-pizarra)" }}
-        >
-          {TIPOS.map(t => <option key={t} value={t}>{t}</option>)}
-        </select>
-      </div>
 
       <div>
         <label className="label">Mensaje</label>
@@ -84,22 +60,6 @@ export default function SugerenciaForm() {
           {mensaje.length}/2000 caracteres {mensaje.length < 10 && mensaje.length > 0 && "— mínimo 10"}
         </p>
       </div>
-
-      <label className="flex items-center gap-3 cursor-pointer select-none">
-        <div
-          onClick={() => setAnonima(v => !v)}
-          className="w-10 h-6 rounded-full relative transition-colors cursor-pointer shrink-0"
-          style={{ background: anonima ? "var(--turquesa)" : "var(--borde)" }}
-        >
-          <span
-            className="absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-transform"
-            style={{ transform: anonima ? "translateX(1.25rem)" : "translateX(0.25rem)" }}
-          />
-        </div>
-        <span className="text-sm" style={{ color: "var(--azul-pizarra)" }}>
-          Enviar de forma anónima
-        </span>
-      </label>
 
       <button
         type="submit"
