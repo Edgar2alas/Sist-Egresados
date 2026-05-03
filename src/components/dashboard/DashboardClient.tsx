@@ -22,6 +22,7 @@ const TT = {
   },
 };
 
+
 // ── KPI Card ──────────────────────────────────────────────────────────────────
 function KpiCard({
   label, value, sub, icon: Icon, color, bg,
@@ -32,22 +33,45 @@ function KpiCard({
   return (
     <div
       className="rounded-2xl p-5 flex items-start gap-4"
-      style={{ background: "var(--blanco)", border: "1px solid var(--borde)", boxShadow: "var(--shadow-sm)" }}
+      data-pdf-card-row
+      style={{
+        background: "var(--blanco)",
+        border: "1px solid var(--borde)",
+        boxShadow: "var(--shadow-sm)",
+      }}
     >
-      <div className={`p-3 rounded-xl shrink-0 border ${bg}`}>
+      <div className={`p-3 rounded-xl shrink-0 border ${bg}`} style={{ marginTop: "2px" }}>
         <Icon className={`w-5 h-5 ${color}`} />
       </div>
+
       <div className="min-w-0">
         <p
-          className="text-2xl font-bold leading-tight"
-          style={{ color: "var(--azul-pizarra)", fontFamily: "'Source Serif 4', serif" }}
+          data-pdf-text-fix
+          className="text-2xl font-bold leading-none"
+          style={{
+            color: "var(--azul-pizarra)",
+            fontFamily: "'Source Serif 4', serif",
+          }}
         >
           {value}
         </p>
-        <p className="text-xs font-medium uppercase tracking-wide mt-0.5" style={{ color: "var(--gris-grafito)" }}>
+
+        <p
+          data-pdf-text-fix
+          className="text-xs font-medium uppercase tracking-wide leading-tight mt-1"
+          style={{ color: "var(--gris-grafito)" }}
+        >
           {label}
         </p>
-        {sub && <p className="text-xs mt-1" style={{ color: "var(--placeholder)" }}>{sub}</p>}
+
+        {sub && (
+          <p
+            className="text-xs leading-tight mt-1"
+            style={{ color: "var(--placeholder)" }}
+          >
+            {sub}
+          </p>
+        )}
       </div>
     </div>
   );
@@ -198,161 +222,541 @@ export default function DashboardClient() {
   const [modalidad,  setModalidad]  = useState("");
   const [tipo,       setTipo]       = useState("");
   
-
   const dashboardRef = useRef<HTMLDivElement>(null);
+
   const years = Array.from({ length: new Date().getFullYear() - 1997 }, (_, i) => 1998 + i).reverse();
 
-  const exportarPDF = async () => {
-    const el = dashboardRef.current;
-    if (!el || !data) return;
+const exportarPDF = async () => {
+  if (!data) return;
 
-    // Carga dinámica para no aumentar el bundle
-    const [{ default: html2canvas }, { default: jsPDF }] = await Promise.all([
-      import("html2canvas"),
-      import("jspdf"),
-    ]);
+  const { default: jsPDF } = await import("jspdf");
 
-    const fechaGen = new Date().toLocaleDateString("es-BO", {
-      day: "2-digit", month: "long", year: "numeric",
-    });
+  const fechaGen = new Date().toLocaleDateString("es-BO", {
+    day: "2-digit", month: "long", year: "numeric",
+  });
 
-    const filtrosAplicados = [
-      anioDesde && `Desde ${anioDesde}`,
-      anioHasta && `Hasta ${anioHasta}`,
-      tipo      && `Tipo: ${tipo}`,
-      sector    && `Sector: ${sector}`,
-      modalidad && `Modalidad: ${modalidad}`,
-    ].filter(Boolean).join(" · ") || "Sin filtros";
+  const filtrosAplicados = [
+    anioDesde && `Desde ${anioDesde}`,
+    anioHasta && `Hasta ${anioHasta}`,
+    tipo      && `Tipo: ${tipo}`,
+    sector    && `Sector: ${sector}`,
+    modalidad && `Modalidad: ${modalidad}`,
+  ].filter(Boolean).join(" · ") || "Sin filtros";
 
-    // Capturar el contenido del dashboard
-const canvas = await html2canvas(el, {
-      scale: 2,
-      useCORS: true,
-      backgroundColor: "#f8fafc",
-      logging: false,
-      windowWidth: el.scrollWidth,
-      windowHeight: el.scrollHeight,
-      onclone: (doc) => {
-        // Forzar que todos los textos truncados sean visibles en la captura
-        doc.querySelectorAll<HTMLElement>(".truncate, .line-clamp-3").forEach(el => {
-          el.style.overflow = "visible";
-          el.style.whiteSpace = "normal";
-          el.style.webkitLineClamp = "unset";
-        });
-        // Forzar que los selects y inputs no queden cortados
-        doc.querySelectorAll<HTMLElement>("select, input").forEach(el => {
-          el.style.overflow = "visible";
-        });
-      },
-    });
+  const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+  const pageW = pdf.internal.pageSize.getWidth();
+  const pageH = pdf.internal.pageSize.getHeight();
+  const margin = 14;
+  let y = 0;
 
-    const imgData = canvas.toDataURL("image/png");
-    const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+  // ── Encabezado ────────────────────────────────────────────────────────
+  pdf.setFillColor(0, 165, 168);
+  pdf.rect(0, 0, pageW, 18, "F");
+  pdf.setTextColor(255, 255, 255);
+  pdf.setFontSize(13);
+  pdf.setFont("helvetica", "bold");
+  pdf.text("Carrera de Estadística — UMSA", margin, 12);
+  pdf.setFontSize(8);
+  pdf.setFont("helvetica", "normal");
+  pdf.text("Universidad Mayor de San Andrés", pageW - margin, 12, { align: "right" });
 
-    const pageW = pdf.internal.pageSize.getWidth();
-    const pageH = pdf.internal.pageSize.getHeight();
-    const margin = 14;
+  // ── Título ────────────────────────────────────────────────────────────
+  pdf.setTextColor(30, 41, 59);
+  pdf.setFontSize(15);
+  pdf.setFont("helvetica", "bold");
+  pdf.text("Dashboard — Informe de Seguimiento de Egresados", margin, 30);
+  pdf.setDrawColor(0, 165, 168);
+  pdf.setLineWidth(0.5);
+  pdf.line(margin, 33, pageW - margin, 33);
+  y = 33;
 
-    // ── Encabezado institucional ──────────────────────────────────────────
-    // Banda superior turquesa
-    pdf.setFillColor(0, 165, 168);
-    pdf.rect(0, 0, pageW, 18, "F");
+  // ── Metadata ──────────────────────────────────────────────────────────
+  pdf.setFontSize(8);
+  pdf.setFont("helvetica", "normal");
+  pdf.setTextColor(71, 85, 105);
+  y += 7;
+  pdf.text(`Fecha de generación: ${fechaGen}`, margin, y);
+  y += 5;
+  pdf.text(`Filtros aplicados: ${filtrosAplicados}`, margin, y);
+  y += 10;
 
-    // Título en la banda
-    pdf.setTextColor(255, 255, 255);
-    pdf.setFontSize(13);
+  // ── KPIs ──────────────────────────────────────────────────────────────
+const kpis = data.kpis ?? {};
+pdf.setFontSize(11);
+pdf.setFont("helvetica", "bold");
+pdf.setTextColor(30, 41, 59);
+pdf.text("Indicadores Clave", margin, y);
+y += 6;
+
+const kpiData = [
+  ["Total Titulados registrados",       String(kpis.totalTitulados ?? 0)],
+  ["Total Egresados sin título",         String(kpis.totalEgresados ?? 0)],
+  ["Tasa de empleabilidad (titulados)",  `${kpis.tasaEmpleabilidadTitulados ?? 0}%`],
+  ["Titulados con empleo activo",        String(kpis.tituladosConEmpleo ?? 0)],
+  ["Tiempo promedio egreso→titulación",  kpis.tiempoPromedioTitulacion ? `${kpis.tiempoPromedioTitulacion} meses` : "—"],
+  ["Tiempo promedio inserción laboral",  kpis.tiempoPromedioInsercion  ? `${kpis.tiempoPromedioInsercion} meses`  : "—"],
+];
+
+const colW = (pageW - margin * 2) / 2;
+kpiData.forEach(([label, value], i) => {
+  const col = i % 2;
+  const row = Math.floor(i / 2); // ← quitado el +100
+  const x   = margin + col * colW;
+  const yy  = y + row * 14;
+
+  pdf.setFillColor(248, 250, 252);
+  pdf.setDrawColor(226, 232, 240);
+  pdf.roundedRect(x, yy - 4, colW - 4, 12, 2, 2, "FD");
+  pdf.setFontSize(7);
+  pdf.setFont("helvetica", "normal");
+  pdf.setTextColor(100, 116, 139);
+  pdf.text(label, x + 4, yy - 1);
+  pdf.setFontSize(11);
+  pdf.setFont("helvetica", "bold");
+  pdf.setTextColor(0, 165, 168);
+  pdf.text(value, x + 4, yy + 5);
+});
+
+y += Math.ceil(kpiData.length / 2) * 14 + 8;
+
+  // ── Separador ─────────────────────────────────────────────────────────
+  pdf.setDrawColor(226, 232, 240);
+  pdf.setLineWidth(0.3);
+  pdf.line(margin, y, pageW - margin, y);
+  y += 8;
+
+  // ── Tabla: Graduados por año ───────────────────────────────────────────
+  const g = data.graficos ?? {};
+  const porAnio: any[] = g.tituladosPorAnio ?? [];
+
+  if (porAnio.length > 0) {
+    pdf.setFontSize(11);
     pdf.setFont("helvetica", "bold");
-    pdf.text("Carrera de Estadística — UMSA", margin, 12);
-
-    // Subtítulo derecha
-    pdf.setFontSize(8);
-    pdf.setFont("helvetica", "normal");
-    pdf.text("Universidad Mayor de San Andrés", pageW - margin, 12, { align: "right" });
-
-    // ── Título del informe ────────────────────────────────────────────────
     pdf.setTextColor(30, 41, 59);
-    pdf.setFontSize(15);
-    pdf.setFont("helvetica", "bold");
-    pdf.text("Dashboard — Informe de Seguimiento de Egresados", margin, 30);
+    pdf.text("Graduados por Año de Titulación", margin, y);
+    y += 6;
 
-    // Línea divisoria
-    pdf.setDrawColor(0, 165, 168);
-    pdf.setLineWidth(0.5);
-    pdf.line(margin, 33, pageW - margin, 33);
-
-    // ── Metadata ──────────────────────────────────────────────────────────
+    // Encabezados tabla
+    const colAncho = [20, 30, 30, 20];
+    const headers = ["Año", "Total", "Titulados", "Egresados"];
+    pdf.setFillColor(0, 165, 168);
+    pdf.rect(margin, y - 4, pageW - margin * 2, 8, "F");
+    pdf.setTextColor(255, 255, 255);
     pdf.setFontSize(8);
-    pdf.setFont("helvetica", "normal");
-    pdf.setTextColor(71, 85, 105);
-    pdf.text(`Fecha de generación: ${fechaGen}`, margin, 39);
-    pdf.text(`Filtros aplicados: ${filtrosAplicados}`, margin, 44);
+    pdf.setFont("helvetica", "bold");
+    let xh = margin + 2;
+    headers.forEach((h, i) => {
+      pdf.text(h, xh, y + 1);
+      xh += colAncho[i];
+    });
+    y += 8;
 
-    const kpis = data?.kpis ?? {};
-    pdf.text(
-      `Titulados registrados: ${kpis.totalTitulados ?? 0}   |   Egresados: ${kpis.totalEgresados ?? 0}   |   Empleabilidad: ${kpis.tasaEmpleabilidadTitulados ?? 0}%`,
-      margin, 49,
-    );
-
-    // ── Imagen del dashboard capturado ────────────────────────────────────
-    const contentTop = 55;
-    const availH = pageH - contentTop - 14; // margen inferior
-    const availW = pageW - margin * 2;
-
-    const imgW = canvas.width;
-    const imgH = canvas.height;
-    const ratio = Math.min(availW / imgW, (availH * 3) / imgH); // múltiples páginas si hace falta
-
-    const drawW = imgW * ratio;
-
-    // Recortar en páginas
-    const pageImgH = availH / ratio; // altura de imagen por página (en px)
-    let offsetPx = 0;
-    let firstPage = true;
-
-    while (offsetPx < imgH) {
-      if (!firstPage) {
+    porAnio.slice(-15).forEach((row: any, idx: number) => {
+      if (y > pageH - 30) {
         pdf.addPage();
-
-        // Banda encabezado en páginas siguientes
-        pdf.setFillColor(0, 165, 168);
-        pdf.rect(0, 0, pageW, 10, "F");
-        pdf.setTextColor(255, 255, 255);
-        pdf.setFontSize(8);
-        pdf.setFont("helvetica", "bold");
-        pdf.text("Carrera de Estadística — UMSA · Dashboard Egresados", margin, 7);
+        y = 20;
       }
+      pdf.setFillColor(idx % 2 === 0 ? 248 : 255, idx % 2 === 0 ? 250 : 255, idx % 2 === 0 ? 252 : 255);
+      pdf.rect(margin, y - 4, pageW - margin * 2, 7, "F");
+      pdf.setTextColor(30, 41, 59);
+      pdf.setFont("helvetica", "normal");
+      pdf.setFontSize(8);
+      let xr = margin + 2;
+      [String(row.anio), String(row.total ?? (row.titulados + row.egresados)), String(row.titulados ?? 0), String(row.egresados ?? 0)].forEach((val, i) => {
+        pdf.text(val, xr, y + 0.5);
+        xr += colAncho[i];
+      });
+      y += 7;
+    });
+    y += 6;
+  }
 
-      const sliceH = Math.min(pageImgH, imgH - offsetPx);
+  // ── Tabla: Sector laboral ─────────────────────────────────────────────
+  const porSector: any[] = g.porSector ?? [];
+  if (porSector.length > 0) {
+    if (y > pageH - 60) { pdf.addPage(); y = 20; }
+    pdf.setFontSize(11);
+    pdf.setFont("helvetica", "bold");
+    pdf.setTextColor(30, 41, 59);
+    pdf.text("Distribución por Sector Laboral", margin, y);
+    y += 6;
 
-      // Crear canvas recortado
-      const sliceCanvas = document.createElement("canvas");
-      sliceCanvas.width  = imgW;
-      sliceCanvas.height = sliceH;
-      const ctx = sliceCanvas.getContext("2d")!;
-      ctx.drawImage(canvas, 0, -offsetPx);
-      const sliceData = sliceCanvas.toDataURL("image/png");
+    pdf.setFillColor(0, 165, 168);
+    pdf.rect(margin, y - 4, pageW - margin * 2, 8, "F");
+    pdf.setTextColor(255, 255, 255);
+    pdf.setFontSize(8);
+    pdf.setFont("helvetica", "bold");
+    pdf.text("Sector", margin + 2, y + 1);
+    pdf.text("Cantidad", margin + 80, y + 1);
+    pdf.text("% del total", margin + 120, y + 1);
+    y += 8;
 
-      const yStart = firstPage ? contentTop : 13;
-      pdf.addImage(sliceData, "PNG", margin, yStart, drawW, sliceH * ratio);
+    const totalSector = porSector.reduce((acc: number, r: any) => acc + r.cantidad, 0);
+    porSector.forEach((row: any, idx: number) => {
+      if (y > pageH - 20) { pdf.addPage(); y = 20; }
+      pdf.setFillColor(idx % 2 === 0 ? 248 : 255, idx % 2 === 0 ? 250 : 255, idx % 2 === 0 ? 252 : 255);
+      pdf.rect(margin, y - 4, pageW - margin * 2, 7, "F");
+      pdf.setTextColor(30, 41, 59);
+      pdf.setFont("helvetica", "normal");
+      pdf.setFontSize(8);
+      pdf.text(String(row.sector ?? "—"), margin + 2, y + 0.5);
+      pdf.text(String(row.cantidad), margin + 80, y + 0.5);
+      const pct = totalSector > 0 ? ((row.cantidad / totalSector) * 100).toFixed(1) : "0";
+      pdf.text(`${pct}%`, margin + 120, y + 0.5);
+      y += 7;
+    });
+    y += 6;
+  }
 
-      offsetPx += sliceH;
-      firstPage = false;
+  // ── Tabla: Modalidad ──────────────────────────────────────────────────
+  const porModalidad: any[] = g.porModalidad ?? [];
+  if (porModalidad.length > 0) {
+    if (y > pageH - 60) { pdf.addPage(); y = 20; }
+    pdf.setFontSize(11);
+    pdf.setFont("helvetica", "bold");
+    pdf.setTextColor(30, 41, 59);
+    pdf.text("Distribución por Modalidad de Titulación", margin, y);
+    y += 6;
+
+    pdf.setFillColor(0, 165, 168);
+    pdf.rect(margin, y - 4, pageW - margin * 2, 8, "F");
+    pdf.setTextColor(255, 255, 255);
+    pdf.setFontSize(8);
+    pdf.setFont("helvetica", "bold");
+    pdf.text("Modalidad", margin + 2, y + 1);
+    pdf.text("Cantidad", margin + 100, y + 1);
+    y += 8;
+
+    porModalidad.forEach((row: any, idx: number) => {
+      if (y > pageH - 20) { pdf.addPage(); y = 20; }
+      pdf.setFillColor(idx % 2 === 0 ? 248 : 255, idx % 2 === 0 ? 250 : 255, idx % 2 === 0 ? 252 : 255);
+      pdf.rect(margin, y - 4, pageW - margin * 2, 7, "F");
+      pdf.setTextColor(30, 41, 59);
+      pdf.setFont("helvetica", "normal");
+      pdf.setFontSize(8);
+      pdf.text(String(row.modalidad ?? "—"), margin + 2, y + 0.5);
+      pdf.text(String(row.cantidad), margin + 100, y + 0.5);
+      y += 7;
+    });
+    y += 6;
+  }
+
+  // ── Tabla: Distribución geográfica ────────────────────────────────────────
+const geoCiudad: any[] = g.geoCiudad ?? [];
+const geoRegion: any[]  = g.geoRegion  ?? [];
+
+if (geoCiudad.length > 0 || geoRegion.length > 0) {
+  if (y > pageH - 80) { pdf.addPage(); y = 20; }
+
+  pdf.setFontSize(11);
+  pdf.setFont("helvetica", "bold");
+  pdf.setTextColor(30, 41, 59);
+  pdf.text("Distribución Geográfica", margin, y);
+  y += 6;
+
+  const colGeo = (pageW - margin * 2) / 2 - 2;
+
+  // ── Encabezado ciudad ──
+  pdf.setFillColor(0, 165, 168);
+  pdf.rect(margin, y - 4, colGeo, 8, "F");
+  pdf.setTextColor(255, 255, 255);
+  pdf.setFontSize(8);
+  pdf.setFont("helvetica", "bold");
+  pdf.text("Ciudad de trabajo", margin + 2, y + 1);
+
+  // ── Encabezado región ──
+  const xRegion = margin + colGeo + 4;
+  pdf.setFillColor(0, 165, 168);
+  pdf.rect(xRegion, y - 4, colGeo, 8, "F");
+  pdf.text("Departamento residencia", xRegion + 2, y + 1);
+  y += 8;
+
+  const maxFilas = Math.max(geoCiudad.length, geoRegion.length);
+  for (let i = 0; i < Math.min(maxFilas, 10); i++) {
+    if (y > pageH - 20) { pdf.addPage(); y = 20; }
+
+    const ciudad  = geoCiudad[i];
+    const region  = geoRegion[i];
+    const bgColor = i % 2 === 0 ? [248, 250, 252] : [255, 255, 255];
+
+    // fila ciudad
+    pdf.setFillColor(bgColor[0], bgColor[1], bgColor[2]);
+    pdf.rect(margin, y - 4, colGeo, 7, "F");
+    pdf.setTextColor(30, 41, 59);
+    pdf.setFont("helvetica", "normal");
+    pdf.setFontSize(8);
+    if (ciudad) {
+      pdf.text(`${i + 1}. ${String(ciudad.ciudad ?? "—")}`, margin + 2, y + 0.5);
+      pdf.setTextColor(0, 165, 168);
+      pdf.setFont("helvetica", "bold");
+      pdf.text(String(ciudad.cantidad), margin + colGeo - 10, y + 0.5);
     }
 
-    // ── Pie de página en última página ────────────────────────────────────
+    // fila región
+    pdf.setFillColor(bgColor[0], bgColor[1], bgColor[2]);
+    pdf.rect(xRegion, y - 4, colGeo, 7, "F");
+    pdf.setTextColor(30, 41, 59);
+    pdf.setFont("helvetica", "normal");
+    pdf.setFontSize(8);
+    if (region) {
+      pdf.text(`${i + 1}. ${String(region.region ?? "—")}`, xRegion + 2, y + 0.5);
+      pdf.setTextColor(0, 165, 168);
+      pdf.setFont("helvetica", "bold");
+      pdf.text(String(region.cantidad), xRegion + colGeo - 10, y + 0.5);
+    }
+
+    y += 7;
+  }
+  y += 6;
+}
+
+  // ── Tabla: Cohorte comparativo ─────────────────────────────────────────
+  const cohorte: any[] = g.cohorteComparativo ?? [];
+  if (cohorte.length > 0) {
+    if (y > pageH - 70) { pdf.addPage(); y = 20; }
+    pdf.setFontSize(11);
+    pdf.setFont("helvetica", "bold");
+    pdf.setTextColor(30, 41, 59);
+    pdf.text("Comparativo por Cohorte de Ingreso", margin, y);
+    y += 6;
+
+    const chCols = [18, 16, 20, 22, 26, 22];
+    const chHeaders = ["Cohorte", "Total", "Titulados", "Egresados", "Con empleo", "% Titulados"];
+    pdf.setFillColor(0, 165, 168);
+    pdf.rect(margin, y - 4, pageW - margin * 2, 8, "F");
+    pdf.setTextColor(255, 255, 255);
+    pdf.setFontSize(7);
+    pdf.setFont("helvetica", "bold");
+    let xch = margin + 2;
+    chHeaders.forEach((h, i) => {
+      pdf.text(h, xch, y + 1);
+      xch += chCols[i];
+    });
+    y += 8;
+
+    cohorte.slice(0, 20).forEach((row: any, idx: number) => {
+      if (y > pageH - 20) { pdf.addPage(); y = 20; }
+      pdf.setFillColor(idx % 2 === 0 ? 248 : 255, idx % 2 === 0 ? 250 : 255, idx % 2 === 0 ? 252 : 255);
+      pdf.rect(margin, y - 4, pageW - margin * 2, 7, "F");
+      pdf.setTextColor(30, 41, 59);
+      pdf.setFont("helvetica", "normal");
+      pdf.setFontSize(7);
+      const vals = [
+        String(row.cohorte ?? "—"),
+        String(row.total ?? 0),
+        String(row.titulados ?? 0),
+        String(row.egresados ?? 0),
+        String(row.tituladosConEmpleo ?? 0),
+        `${(row.pctTitulados ?? 0).toFixed(1)}%`,
+      ];
+      let xr2 = margin + 2;
+      vals.forEach((v, i) => {
+        pdf.text(v, xr2, y + 0.5);
+        xr2 += chCols[i];
+      });
+      y += 7;
+    });
+    y += 6;
+  }
+
+  // ── Pie de página ─────────────────────────────────────────────────────
+  const totalPages = (pdf as any).internal.getNumberOfPages();
+  for (let i = 1; i <= totalPages; i++) {
+    pdf.setPage(i);
     pdf.setFontSize(7);
     pdf.setFont("helvetica", "normal");
     pdf.setTextColor(148, 163, 184);
     pdf.text(
-      `Sistema de Seguimiento de Egresados · Carrera de Estadística UMSA · Generado el ${fechaGen}`,
+      `Sistema de Seguimiento de Egresados · Carrera de Estadística UMSA · ${fechaGen} · Pág. ${i}/${totalPages}`,
       pageW / 2,
       pageH - 6,
       { align: "center" },
     );
+  }
 
-    const fileName = `dashboard_egresados_${new Date().toISOString().split("T")[0]}.pdf`;
-    pdf.save(fileName);
+  const fileName = `dashboard_egresados_${new Date().toISOString().split("T")[0]}.pdf`;
+  pdf.save(fileName);
+};
+
+
+
+
+const exportarPDFCaptura = async () => {
+  if (!data) return;
+
+  const fechaGen = new Date().toLocaleDateString("es-BO", {
+    day: "2-digit", month: "long", year: "numeric",
+  });
+
+  const filtrosAplicados = [
+    anioDesde && `Desde ${anioDesde}`,
+    anioHasta && `Hasta ${anioHasta}`,
+    tipo      && `Tipo: ${tipo}`,
+    sector    && `Sector: ${sector}`,
+    modalidad && `Modalidad: ${modalidad}`,
+  ].filter(Boolean).join(" · ") || "Sin filtros";
+
+  try {
+    const html2canvasModule = await import("html2canvas");
+    const html2canvas = html2canvasModule.default ?? html2canvasModule;
+    const jsPDFModule = await import("jspdf");
+    const jsPDF = jsPDFModule.default ?? jsPDFModule.jsPDF;
+
+    const oncloneHandler = async (doc: Document) => {
+    const style = doc.createElement("style");
+    style.textContent = `
+      * {
+        font-family: Arial, sans-serif !important;
+        transform: none !important;
+        -webkit-transform: none !important;
+      }
+      p, span, h3, h4, label, td, th, div {
+        position: relative !important;
+        top: -8px !important;
+      }
+    `;
+    doc.head.appendChild(style);
+    await doc.fonts.ready;
   };
+
+    // ── Capturar KPIs ─────────────────────────────────────────────────
+    const kpiEl = document.querySelector("[data-pdf-kpis]") as HTMLElement;
+    if (!kpiEl) { alert("No se encontró el bloque de KPIs"); return; }
+
+    const canvasKpis = await html2canvas(kpiEl, {
+      scale: 2,
+      useCORS: true,
+      backgroundColor: "#f8fafc",
+      logging: false,
+      width: kpiEl.scrollWidth,
+      height: kpiEl.scrollHeight,
+      onclone: oncloneHandler,
+    });
+
+    // ── Capturar cada bloque de gráficos ──────────────────────────────
+    const graficoEls = Array.from(
+      document.querySelectorAll("[data-pdf-graficos]")
+    ) as HTMLElement[];
+
+    const canvasGraficos = await Promise.all(
+      graficoEls.map((el) =>
+        html2canvas(el, {
+          scale: 2,
+          useCORS: true,
+          backgroundColor: "#f8fafc",
+          logging: false,
+          width: el.scrollWidth,
+          height: el.scrollHeight,
+          onclone: oncloneHandler,
+        })
+      )
+    );
+
+    // ── Construir PDF ─────────────────────────────────────────────────
+    const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+    const pageW  = pdf.internal.pageSize.getWidth();
+    const pageH  = pdf.internal.pageSize.getHeight();
+    const margin = 14;
+    const availW = pageW - margin * 2;
+    const footerY = pageH - 4;
+
+    const addFooter = () => {
+      pdf.setFontSize(6);
+      pdf.setFont("helvetica", "normal");
+      pdf.setTextColor(148, 163, 184);
+      pdf.text(
+        `Sistema de Seguimiento de Egresados · Carrera de Estadística UMSA · Pág. ${(pdf as any).internal.getNumberOfPages()}`,
+        pageW / 2, footerY, { align: "center" },
+      );
+    };
+
+    const addHeader = (isFirst: boolean) => {
+      pdf.setFillColor(0, 165, 168);
+      pdf.rect(0, 0, pageW, 18, "F");
+      pdf.setTextColor(255, 255, 255);
+      pdf.setFontSize(12);
+      pdf.setFont("helvetica", "bold");
+      pdf.text("Carrera de Estadística — UMSA", margin, 12);
+      pdf.setFontSize(7);
+      pdf.setFont("helvetica", "normal");
+      pdf.text("Universidad Mayor de San Andrés", pageW - margin, 12, { align: "right" });
+
+      if (isFirst) {
+        pdf.setTextColor(30, 41, 59);
+        pdf.setFontSize(14);
+        pdf.setFont("helvetica", "bold");
+        pdf.text("Dashboard — Seguimiento de Egresados", margin, 28);
+        pdf.setDrawColor(0, 165, 168);
+        pdf.setLineWidth(0.5);
+        pdf.line(margin, 31, pageW - margin, 31);
+        pdf.setFontSize(7.5);
+        pdf.setFont("helvetica", "normal");
+        pdf.setTextColor(71, 85, 105);
+        pdf.text(`Fecha: ${fechaGen}`, margin, 37);
+        pdf.text(`Filtros: ${filtrosAplicados}`, margin, 42);
+      }
+    };
+
+    // ── Página 1: encabezado + KPIs ───────────────────────────────────
+    addHeader(true);
+
+    const mmPerPxKpi = availW / canvasKpis.width;
+    const kpiImgH    = canvasKpis.height * mmPerPxKpi;
+    let cursorY      = 48; // justo debajo de fecha/filtros
+
+    pdf.addImage(canvasKpis.toDataURL("image/png"), "PNG", margin, cursorY, availW, kpiImgH);
+    cursorY += kpiImgH + 6;
+
+    // ── Separador "Gráficos y análisis" ──────────────────────────────
+    pdf.setDrawColor(0, 165, 168);
+    pdf.setLineWidth(0.3);
+    pdf.line(margin, cursorY, pageW - margin, cursorY);
+    pdf.setFontSize(7);
+    pdf.setFont("helvetica", "bold");
+    pdf.setTextColor(0, 165, 168);
+    pdf.text("GRÁFICOS Y ANÁLISIS", pageW / 2, cursorY + 5, { align: "center" });
+    cursorY += 10;
+
+    addFooter();
+
+    // ── Insertar cada gráfico, paginando si es necesario ──────────────
+    for (const canvasG of canvasGraficos) {
+      const mmPerPx = availW / canvasG.width;
+      const imgH    = canvasG.height * mmPerPx;
+
+      // Si no cabe en la página actual, añadir nueva página
+      if (cursorY + imgH > pageH - 12) {
+        pdf.addPage();
+        addHeader(false);
+        cursorY = 22;
+        addFooter();
+      }
+
+      pdf.addImage(canvasG.toDataURL("image/png"), "PNG", margin, cursorY, availW, imgH);
+      cursorY += imgH + 6;
+    }
+
+    // ── Actualizar números de página ──────────────────────────────────
+    const totalPages = (pdf as any).internal.getNumberOfPages();
+    for (let i = 1; i <= totalPages; i++) {
+      pdf.setPage(i);
+      pdf.setFontSize(6);
+      pdf.setFont("helvetica", "normal");
+      pdf.setTextColor(148, 163, 184);
+      pdf.text(
+        `Sistema de Seguimiento de Egresados · Carrera de Estadística UMSA · Pág. ${i}/${totalPages}`,
+        pageW / 2, footerY, { align: "center" },
+      );
+    }
+
+    pdf.save(`dashboard_visual_${new Date().toISOString().split("T")[0]}.pdf`);
+
+  } catch (e) {
+    console.error("Error al generar PDF:", e);
+    alert("Error al generar el PDF.");
+  }
+};
+
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -395,8 +799,6 @@ const canvas = await html2canvas(el, {
   return (
     <div className="space-y-6">
 
-
-
       {/* ── Loading / Error ── */}
       {loading && (
         <div className="flex items-center justify-center py-20">
@@ -414,9 +816,10 @@ const canvas = await html2canvas(el, {
       )}
 
       {!loading && data && (
-  <div ref={dashboardRef}>
+
+  <div ref={dashboardRef} data-pdf-capture>
         {/* ── KPIs siempre sin filtro ── */}
-        <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+        <div data-pdf-kpis className="grid grid-cols-2 lg:grid-cols-3 gap-4">
           <KpiCard
             label="Total Titulados registrados"
             value={kpis.totalTitulados ?? 0}
@@ -468,7 +871,7 @@ const canvas = await html2canvas(el, {
         </div>
 
         {/* ── Separador con etiqueta ── */}
-        <div className="flex items-center gap-3" style={{ marginTop: "2rem", marginBottom: "2rem" }}>
+        <div data-pdf-graficos className="flex items-center gap-3" style={{ marginTop: "2rem", marginBottom: "2rem" }}>
           <div style={{ flex: 1, height: "1px", background: "var(--borde)" }} />
           <span
             className="text-xs font-semibold uppercase tracking-widest px-3 py-1 rounded-full"
@@ -481,6 +884,7 @@ const canvas = await html2canvas(el, {
 
         {/* ── Panel de filtros (afectan solo los gráficos) ── */}
         <div
+          data-pdf-graficos
           className="rounded-2xl p-5"
           style={{ background: "var(--blanco)", border: "1px solid var(--borde)", boxShadow: "var(--shadow-sm)" }}
         >
@@ -561,43 +965,45 @@ const canvas = await html2canvas(el, {
 
       <div className="pt-[22px] flex items-center gap-3">
         <button
-            onClick={fetchData}
-            disabled={loading}
-            className="btn-primary btn-sm flex items-center gap-2 h-[38px]"
-          >
-            <RefreshCw className={cn("w-3.5 h-3.5", loading && "animate-spin")} />
-            Aplicar filtros
-          </button>
-         {(anioDesde || anioHasta || sector || modalidad || tipo) && (
-            <button
-              onClick={resetFiltros}
-              className="btn-sm h-[38px] px-4 text-xs font-medium rounded-lg border flex items-center"
-              style={{
-                borderColor: "var(--borde)",
-                color: "var(--gris-grafito)",
-                background: "var(--blanco)",
-              }}
-            >
-              Limpiar filtros
-            </button>
-          )}
+          onClick={fetchData}
+          disabled={loading}
+          className="btn-primary btn-sm flex items-center gap-2 h-[38px]"
+        >
+          <RefreshCw className={cn("w-3.5 h-3.5", loading && "animate-spin")} />
+          Aplicar filtros
+        </button>
 
+        {(anioDesde || anioHasta || sector || modalidad || tipo) && (
           <button
-            onClick={exportarPDF}
-            disabled={!data || loading}
-            className="btn-sm h-[38px] px-4 flex items-center gap-2 rounded-lg border"
+            onClick={resetFiltros}
+            className="btn-sm h-[38px] px-4 text-xs font-medium rounded-lg border flex items-center"
             style={{
               borderColor: "var(--borde)",
-              color: "var(--azul-pizarra)",
+              color: "var(--gris-grafito)",
               background: "var(--blanco)",
             }}
-            title="Exportar dashboard completo a PDF"
           >
-            <FileDown className="w-4 h-4" style={{ color: "var(--turquesa)" }} />
-            Exportar PDF
+            Limpiar filtros
           </button>
-        </div>
+        )}
+
+        <button
+          onClick={exportarPDF}
+          disabled={!data || loading}
+          className="btn-sm h-[38px] px-4 flex items-center gap-2 rounded-lg border"
+          style={{
+            borderColor: "var(--borde)",
+            color: "var(--azul-pizarra)",
+            background: "var(--blanco)",
+          }}
+          title="Exportar dashboard como tablas en PDF"
+        >
+          <FileDown className="w-4 h-4" style={{ color: "var(--turquesa)" }} />
+          Exportar como PDF
+        </button>
+
       </div>
+    </div>
     </div>
 
     {/* ── Gráficos fila 1 ── */}
