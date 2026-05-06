@@ -14,8 +14,6 @@ const NAV = [
   { href: "/egresados",      label: "Egresados",      icon: Users },
   { href: "/reportes",       label: "Reportes",       icon: FileBarChart },
   { href: "/usuarios",       label: "Usuarios",       icon: UserCog },
-  { href: "/verificaciones", label: "Verificaciones", icon: ShieldCheck },
-  { href: "/sugerencias",    label: "Sugerencias",    icon: MessageSquare },
   { href: "/noticias-admin", label: "Noticias",        icon: Newspaper },
 ];
 function SidebarContent({ correo, onClose }: { correo?: string; onClose?: () => void }) {

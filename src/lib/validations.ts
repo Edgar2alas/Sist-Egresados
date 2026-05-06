@@ -118,17 +118,6 @@ export const postgradoSchema = z.object({
   { message: "El año de finalización no puede ser anterior al de inicio", path: ["anioFin"] }
 );
 
-// ── Sugerencias ───────────────────────────────────────────────────────────────
-export const sugerenciaSchema = z.object({
-  tipo:      z.enum([
-    "Sugerencia general",
-    "Sugerencia para el sistema",
-    "Especializacion recomendada",
-  ]).default("Sugerencia general"),
-  mensaje:   z.string().min(10, "Mínimo 10 caracteres").max(2000),
-  esAnonima: z.boolean().default(false),
-});
-
 // ── Usuario ───────────────────────────────────────────────────────────────────
 export const usuarioSchema = z.object({
   correo:            z.string().email("Correo inválido").max(150),
@@ -195,7 +184,6 @@ export type LoginInput         = z.infer<typeof loginSchema>;
 export type EgresadoInput      = z.infer<typeof egresadoSchema>;
 export type HistorialInput     = z.infer<typeof historialSchema>;
 export type PostgradoInput     = z.infer<typeof postgradoSchema>;
-export type SugerenciaInput    = z.infer<typeof sugerenciaSchema>;
 export type UsuarioInput       = z.infer<typeof usuarioSchema>;
 export type UsuarioEditInput   = z.infer<typeof usuarioEditSchema>;
 export type NuevaPasswordInput = z.infer<typeof nuevaPasswordSchema>;

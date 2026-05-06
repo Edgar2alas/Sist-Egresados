@@ -32,26 +32,20 @@ export async function GET(req: NextRequest) {
     if (session.rol === "egresado" && session.idEgresado !== idEgresado)
       return err("No autorizado", 403);
 
-    const rows = await db.select({
-      id:                  historialLaboral.id,
-      idEgresado:          historialLaboral.idEgresado,
-      empresa:             historialLaboral.empresa,
-      cargo:               historialLaboral.cargo,
-      area:                historialLaboral.area,
-      fechaInicio:         historialLaboral.fechaInicio,
-      fechaFin:            historialLaboral.fechaFin,
-      tipoContrato:        historialLaboral.tipoContrato,
-      ciudad:              historialLaboral.ciudad,
-      sector:              historialLaboral.sector,
-      verificacionEstado:  historialLaboral.verificacionEstado,
-      documentoNombre:     historialLaboral.documentoNombre,
-      documentoTipo:       historialLaboral.documentoTipo,
-      documentoSubidoEn:   historialLaboral.documentoSubidoEn,
-      verificadoEn:        historialLaboral.verificadoEn,
-      rechazoMotivo:       historialLaboral.rechazoMotivo,
-      ultimaActualizacion: historialLaboral.ultimaActualizacion,
-      creadoEn:            historialLaboral.creadoEn,
-    })
+const rows = await db.select({
+  id:                  historialLaboral.id,
+  idEgresado:          historialLaboral.idEgresado,
+  empresa:             historialLaboral.empresa,
+  cargo:               historialLaboral.cargo,
+  area:                historialLaboral.area,
+  fechaInicio:         historialLaboral.fechaInicio,
+  fechaFin:            historialLaboral.fechaFin,
+  tipoContrato:        historialLaboral.tipoContrato,
+  ciudad:              historialLaboral.ciudad,
+  sector:              historialLaboral.sector,
+  ultimaActualizacion: historialLaboral.ultimaActualizacion,
+  creadoEn:            historialLaboral.creadoEn,
+})
     .from(historialLaboral)
     .where(eq(historialLaboral.idEgresado, idEgresado))
     .orderBy(desc(historialLaboral.fechaInicio));
@@ -89,51 +83,20 @@ export async function POST(req: NextRequest) {
 
     const fechaFin = d.actualmenteTrabaja ? null : (d.fechaFin ?? null);
 
-    // Procesar documento si se adjuntó
-    const archivo = formData.get("documento") as File | null;
-    let docBinario: Buffer | null = null;
-    let docNombre: string | null = null;
-    let docTipo: string | null = null;
-    let docSubidoEn: Date | null = null;
-
-    if (archivo && archivo.size > 0) {
-      const tiposPermitidos = ["application/pdf", "image/jpeg", "image/png", "image/webp"];
-      if (!tiposPermitidos.includes(archivo.type)) {
-        return err("Solo se permiten archivos PDF, JPG, PNG o WEBP");
-      }
-      if (archivo.size > 5 * 1024 * 1024) {
-        return err("El archivo no puede superar los 5MB");
-      }
-      const arrayBuffer = await archivo.arrayBuffer();
-      docBinario = Buffer.from(arrayBuffer);
-      docNombre = archivo.name;
-      docTipo = archivo.type;
-      docSubidoEn = new Date();
-    }
-
-    // Siempre pendiente, tenga o no documento
-    const verificacionEstado: "pendiente" = "pendiente";
-
     const [row] = await db.insert(historialLaboral).values({
-      idEgresado:        d.idEgresado,
-      empresa:           d.empresa,
-      cargo:             d.cargo,
-      area:              d.area ?? null,
-      tipoContrato:      (d.tipoContrato as any) ?? null,
-      ciudad:            d.ciudad ?? null,
-      sector:            (d.sector as any) ?? null,
-      fechaInicio:       d.fechaInicio,
+      idEgresado:   d.idEgresado,
+      empresa:      d.empresa,
+      cargo:        d.cargo,
+      area:         d.area ?? null,
+      tipoContrato: (d.tipoContrato as any) ?? null,
+      ciudad:       d.ciudad ?? null,
+      sector:       (d.sector as any) ?? null,
+      fechaInicio:  d.fechaInicio,
       fechaFin,
-      verificacionEstado,
-      documentoBinario:  docBinario,
-      documentoNombre:   docNombre,
-      documentoTipo:     docTipo,
-      documentoSubidoEn: docSubidoEn,
     }).returning({
-      id:                 historialLaboral.id,
-      empresa:            historialLaboral.empresa,
-      cargo:              historialLaboral.cargo,
-      verificacionEstado: historialLaboral.verificacionEstado,
+      id:      historialLaboral.id,
+      empresa: historialLaboral.empresa,
+      cargo:   historialLaboral.cargo,
     });
 
     return ok(row, 201);

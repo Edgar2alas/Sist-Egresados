@@ -36,14 +36,6 @@ export async function GET(req: NextRequest) {
       anioInicio:          postgrado.anioInicio,
       anioFin:             postgrado.anioFin,
       estado:              postgrado.estado,
-      verificacionEstado:  postgrado.verificacionEstado,
-      documentoNombre:     postgrado.documentoNombre,
-      documentoTipo:       postgrado.documentoTipo,
-      documentoSubidoEn:   postgrado.documentoSubidoEn,
-      verificadoEn:        postgrado.verificadoEn,
-      rechazoMotivo:       postgrado.rechazoMotivo,
-      esSolicitudCambio:   postgrado.esSolicitudCambio,
-      datosPropuestos:     postgrado.datosPropuestos,
       ultimaActualizacion: postgrado.ultimaActualizacion,
       creadoEn:            postgrado.creadoEn,
     })
@@ -104,20 +96,14 @@ export async function POST(req: NextRequest) {
     const verificacionEstado = "pendiente";
 
     const [row] = await db.insert(postgrado).values({
-      idEgresado:         d.idEgresado,
-      tipo:               d.tipo,
-      institucion:        d.institucion,
-      pais:               d.pais,
-      anioInicio:         d.anioInicio,
-      anioFin:            d.anioFin ?? null,
-      estado:             d.estado,
-      verificacionEstado,
-      documentoBinario:   docBinario,
-      documentoNombre:    docNombre,
-      documentoTipo:      docTipo,
-      documentoSubidoEn:  docSubidoEn,
-    }).returning();
-
+  idEgresado:  d.idEgresado,
+  tipo:        d.tipo,
+  institucion: d.institucion,
+  pais:        d.pais,
+  anioInicio:  d.anioInicio,
+  anioFin:     d.anioFin ?? null,
+  estado:      d.estado,
+}).returning();
     return ok(row, 201);
   } catch (e) { console.error(e); return err("Error al crear postgrado", 500); }
 }

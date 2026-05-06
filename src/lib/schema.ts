@@ -20,17 +20,9 @@ export const postgradoEstadoEnum = pgEnum("postgrado_estado_enum", ["En curso", 
 export const tokenTipoEnum = pgEnum("token_tipo_enum", [
   "primer_login", "reset_password", "verificar_correo", "verificar_celular",
 ]);
-export const modalidadEnum       = pgEnum("modalidad_titulacion_enum", [
+export const modalidadEnum = pgEnum("modalidad_titulacion_enum", [
   "Tesis", "Proyecto de grado", "Trabajo dirigido", "Excelencia",
 ]);
-export const sugerenciaTipoEnum  = pgEnum("sugerencia_tipo_enum",  [
-  "Sugerencia general", "Sugerencia para el sistema", "Especializacion recomendada",
-]);
-export const verificacionEstadoEnum = pgEnum("verificacion_estado_enum", [
-  "pendiente", "aprobado", "rechazado",
-]);
-
-// ── NUEVO — Bloque 0: tipo de persona ─────────────────────────────────────────
 export const personaTipoEnum = pgEnum("persona_tipo_enum", ["Titulado", "Egresado"]);
 
 export const PLANES_ESTUDIO = ["1994", "2008", "2020"] as const;
@@ -70,24 +62,15 @@ export const egresado = pgTable("egresado", {
   mostrarEnDirectorio: boolean("mostrar_en_directorio").notNull().default(false),
   fechaRegistro:       timestamp("fecha_registro").notNull().defaultNow(),
   ultimaActualizacion: timestamp("ultima_actualizacion").defaultNow(),
-
-  // ── NUEVO — Bloque 0 ─────────────────────────────────────────────────────
-  /** Distingue si la persona está titulada o solo egresó sin título */
   tipo:                 personaTipoEnum("tipo").notNull().default("Titulado"),
-
-  // Campos exclusivos para Egresados (sin título aún)
-  inicioProceso:        boolean("inicio_proceso"),          // ¿Inició proceso de titulación?
-  motivoNoTitulacion:   text("motivo_no_titulacion"),       // Razón por la que no se tituló
-  planeaTitularse:      boolean("planea_titularse"),         // ¿Planea titularse en el futuro?
-
-  // Campos compartidos — redes sociales y metadata adicional
+  inicioProceso:        boolean("inicio_proceso"),
+  motivoNoTitulacion:   text("motivo_no_titulacion"),
+  planeaTitularse:      boolean("planea_titularse"),
   facebook:             varchar("facebook",             { length: 200 }),
   linkedin:             varchar("linkedin",             { length: 200 }),
   areaEspecializacion:  varchar("area_especializacion", { length: 150 }),
   observaciones:        text("observaciones"),
   estadoLaboral:        varchar("estado_laboral",       { length: 30 }),
-
-  // ── NUEVO — Bloque 3 ─────────────────────────────────────────────────────
   ciudadResidencia:     varchar("ciudad_residencia",    { length: 100 }),
   regionResidencia:     varchar("region_residencia",    { length: 100 }),
   fallecido:            boolean("fallecido").notNull().default(false),
@@ -113,22 +96,11 @@ export const historialLaboral = pgTable("historial_laboral", {
   tipoContrato:      contratoEnum("tipo_contrato"),
   ciudad:            varchar("ciudad",          { length: 100 }),
   sector:            sectorEnum("sector"),
-
-  // ── Verificación de documento ─────────────────────────────────────────────
-  verificacionEstado:  verificacionEstadoEnum("verificacion_estado"),
-  documentoBinario:    bytea("documento_binario"),
-  documentoNombre:     varchar("documento_nombre",   { length: 255 }),
-  documentoTipo:       varchar("documento_tipo",     { length: 100 }),
-  documentoSubidoEn:   timestamp("documento_subido_en"),
-  verificadoEn:        timestamp("verificado_en"),
-  rechazoMotivo:       text("rechazo_motivo"),
-
   ultimaActualizacion: timestamp("ultima_actualizacion").defaultNow(),
   creadoEn:            timestamp("creado_en").notNull().defaultNow(),
 }, (t) => ({
-  sectorIdx:       index("idx_historial_sector").on(t.sector),
-  ciudadIdx:       index("idx_historial_ciudad").on(t.ciudad),
-  verificacionIdx: index("idx_historial_verificacion").on(t.verificacionEstado),
+  sectorIdx: index("idx_historial_sector").on(t.sector),
+  ciudadIdx: index("idx_historial_ciudad").on(t.ciudad),
 }));
 
 // ── postgrado ─────────────────────────────────────────────────────────────────
@@ -142,35 +114,8 @@ export const postgrado = pgTable("postgrado", {
   anioInicio:  integer("anio_inicio").notNull(),
   anioFin:     integer("anio_fin"),
   estado:      postgradoEstadoEnum("estado").notNull().default("En curso"),
-
-  // ── Verificación de documento ─────────────────────────────────────────────
-  verificacionEstado:  varchar("verificacion_estado", { length: 20 }),
-  documentoBinario:    bytea("documento_binario"),
-  documentoNombre:     varchar("documento_nombre",   { length: 255 }),
-  documentoTipo:       varchar("documento_tipo",     { length: 100 }),
-  documentoSubidoEn:   timestamp("documento_subido_en"),
-  verificadoEn:        timestamp("verificado_en"),
-  rechazoMotivo:       text("rechazo_motivo"),
-  esSolicitudCambio:   boolean("es_solicitud_cambio").notNull().default(false),
-  datosPropuestos:     text("datos_propuestos"),
-
   ultimaActualizacion: timestamp("ultima_actualizacion").defaultNow(),
   creadoEn:            timestamp("creado_en").notNull().defaultNow(),
-}, (t) => ({
-  estadoIdx:       index("idx_postgrado_estado").on(t.estado),
-  verificacionIdx: index("idx_postgrado_verificacion").on(t.verificacionEstado),
-}));
-
-// ── sugerencias ───────────────────────────────────────────────────────────────
-export const sugerencias = pgTable("sugerencias", {
-  id:         serial("id").primaryKey(),
-  idEgresado: integer("id_egresado")
-    .references(() => egresado.id, { onDelete: "set null" }),
-  tipo:       sugerenciaTipoEnum("tipo").notNull().default("Sugerencia general"),
-  mensaje:    text("mensaje").notNull(),
-  esAnonima:  boolean("es_anonima").notNull().default(false),
-  leida:      boolean("leida").notNull().default(false),
-  creadoEn:   timestamp("creado_en").notNull().defaultNow(),
 });
 
 // ── usuario ───────────────────────────────────────────────────────────────────
@@ -204,19 +149,15 @@ export const verificacionTokens = pgTable("verificacion_tokens", {
 
 // ── Relations ─────────────────────────────────────────────────────────────────
 export const egresadoRelations = relations(egresado, ({ many }) => ({
-  historial:   many(historialLaboral),
-  postgrados:  many(postgrado),
-  sugerencias: many(sugerencias),
-  usuarios:    many(usuario),
+  historial:  many(historialLaboral),
+  postgrados: many(postgrado),
+  usuarios:   many(usuario),
 }));
 export const historialRelations = relations(historialLaboral, ({ one }) => ({
   egresado: one(egresado, { fields: [historialLaboral.idEgresado], references: [egresado.id] }),
 }));
 export const postgradoRelations = relations(postgrado, ({ one }) => ({
   egresado: one(egresado, { fields: [postgrado.idEgresado], references: [egresado.id] }),
-}));
-export const sugerenciasRelations = relations(sugerencias, ({ one }) => ({
-  egresado: one(egresado, { fields: [sugerencias.idEgresado], references: [egresado.id] }),
 }));
 export const usuarioRelations = relations(usuario, ({ one, many }) => ({
   egresado:           one(egresado, { fields: [usuario.idEgresado], references: [egresado.id] }),
@@ -233,8 +174,6 @@ export type HistorialLaboral  = typeof historialLaboral.$inferSelect;
 export type NuevoHistorial    = typeof historialLaboral.$inferInsert;
 export type Postgrado         = typeof postgrado.$inferSelect;
 export type NuevoPostgrado    = typeof postgrado.$inferInsert;
-export type Sugerencia        = typeof sugerencias.$inferSelect;
-export type NuevaSugerencia   = typeof sugerencias.$inferInsert;
 export type Usuario           = typeof usuario.$inferSelect;
 export type NuevoUsuario      = typeof usuario.$inferInsert;
 export type VerificacionToken = typeof verificacionTokens.$inferSelect;
@@ -263,10 +202,9 @@ export const noticias = pgTable("noticias", {
   fechaIdx:     index("idx_noticias_fecha").on(t.fecha),
 }));
 
-export type Noticia     = typeof noticias.$inferSelect;
+export type Noticia      = typeof noticias.$inferSelect;
 export type NuevaNoticia = typeof noticias.$inferInsert;
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
 export const fmtGestion = (anio: number | null | undefined, semestre: number | null | undefined): string => {
   if (!anio) return "—";
   if (!semestre) return String(anio);

@@ -173,53 +173,7 @@ export default function PostgradoForm({ idEgresado, postgrado: pg, onSuccess, on
       </div>
 
       {/* Documento — solo en creación */}
-      {!isEditing && (
-        <div className="rounded-xl p-4"
-          style={{ background: "var(--turquesa-pale)", border: "1px solid rgba(0,165,168,0.20)" }}>
-          <div className="flex items-start gap-3 mb-3">
-            <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" style={{ color: "var(--turquesa-dark)" }} />
-            <div>
-              <p className="text-sm font-semibold" style={{ color: "var(--turquesa-dark)" }}>
-                Certificado o título (opcional)
-              </p>
-              <p className="text-xs mt-0.5" style={{ color: "var(--gris-grafito)" }}>
-                Adjunta tu diploma, certificado o comprobante de inscripción. PDF, JPG o PNG — máx. 5MB.{" "}
-                <span className="font-medium" style={{ color: "var(--turquesa-dark)" }}>
-                  El documento es opcional.
-                </span>
-              </p>
-            </div>
-          </div>
-
-          {archivo ? (
-            <div className="flex items-center gap-3 p-3 rounded-lg"
-              style={{ background: "var(--blanco)", border: "1px solid var(--borde)" }}>
-              <FileText className="w-4 h-4 shrink-0" style={{ color: "var(--turquesa)" }} />
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium truncate" style={{ color: "var(--azul-pizarra)" }}>
-                  {archivo.name}
-                </p>
-                <p className="text-xs" style={{ color: "var(--placeholder)" }}>
-                  {(archivo.size / 1024).toFixed(0)} KB
-                </p>
-              </div>
-              <button type="button" onClick={() => { setArchivo(null); if (fileRef.current) fileRef.current.value = ""; }}
-                className="btn-ghost btn-xs">
-                <X className="w-3 h-3" />
-              </button>
-            </div>
-          ) : (
-            <button type="button" onClick={() => fileRef.current?.click()}
-              className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg text-sm font-medium"
-              style={{ background: "var(--blanco)", border: "1.5px dashed rgba(0,165,168,0.40)", color: "var(--turquesa-dark)" }}>
-              <Upload className="w-4 h-4" />
-              Adjuntar certificado
-            </button>
-          )}
-          <input ref={fileRef} type="file" accept=".pdf,.jpg,.jpeg,.png,.webp"
-            onChange={handleFile} className="hidden" />
-        </div>
-      )}
+    
 
       {/* Estado verificación si es edición */}
       {isEditing && pg?.verificacionEstado && (

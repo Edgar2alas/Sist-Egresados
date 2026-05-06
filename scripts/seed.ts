@@ -16,7 +16,6 @@ async function main() {
   console.log("\n🌱 Limpiando BD y sembrando datos amplios...\n");
 
   await db.delete(schema.verificacionTokens);
-  await db.delete(schema.sugerencias);
   await db.delete(schema.postgrado);
   await db.delete(schema.historialLaboral);
   await db.delete(schema.usuario);

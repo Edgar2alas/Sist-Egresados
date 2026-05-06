@@ -267,17 +267,7 @@ export default async function MiPerfilPage() {
 
         <MiPerfilPostgrados postgrados={postgrados} idEgresado={eg.id} />
         </div>
-        <div className="card">
-          <div className="mb-5">
-            <h2 className="text-lg font-bold" style={{ color: "var(--azul-pizarra)", fontFamily: "'Source Serif 4', serif" }}>
-              Enviar una sugerencia
-            </h2>
-            <p className="text-sm mt-0.5" style={{ color: "var(--gris-grafito)" }}>
-              Comparte tus ideas, comentarios o recomendaciones a la carrera
-            </p>
-          </div>
-          <SugerenciaForm />
-        </div>
+      
 
     </div>
   );
